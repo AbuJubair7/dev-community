@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { MongooseModule } from '@nestjs/mongoose';
+import { SkillsModule } from './skills/skills.module';
 import 'dotenv/config';
 
 @Module({
@@ -11,6 +12,7 @@ import 'dotenv/config';
     MongooseModule.forRoot(process.env.MONGO_URI as string),
     UsersModule,
     AuthModule,
+    SkillsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
