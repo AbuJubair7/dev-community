@@ -1,8 +1,5 @@
 import mongoose from 'mongoose';
-
-if (typeof process.loadEnvFile === 'function') {
-  process.loadEnvFile();
-}
+import 'dotenv/config';
 
 export const connectDB = async (): Promise<void> => {
   const uri = process.env.MONGO_URI as string;
