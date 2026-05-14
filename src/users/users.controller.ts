@@ -22,7 +22,7 @@ export class UsersController {
   findAll() {
     return this.usersService.findAll();
   }
- 
+
   @UseGuards(SelfGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {

@@ -1,19 +1,19 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePassDto } from './dto/update-pass.dto';
-import { User, UserSchema } from './entities/user.entity';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
   async create(createUserDto: CreateUserDto) {
-    const user = await this.findByEmail(createUserDto.email);
+    const user = await this.userModel.findOne({email: createUserDto.email}).exec()
     if (user) {
       throw new Error('User already exists');
     }
@@ -33,17 +33,25 @@ export class UsersService {
   }
 
   async findById(id: string) {
-    return await this.userModel.findById(id).exec();
+    const user = await this.userModel.findById(id).exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
   }
 
   async findByEmail(email: string) {
-    return await this.userModel.findOne({ email }).exec();
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     const user = await this.findById(id);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
     if (updateUserDto.password) {
       updateUserDto.password = await bcrypt.hash(
@@ -59,17 +67,17 @@ export class UsersService {
   async updatePassword(id: string, updatePassDto: UpdatePassDto) {
     const user = await this.findById(id);
     if (!user) {
-      throw new Error('User not found');
+      throw new NotFoundException('User not found');
     }
     const isPasswordValid = await bcrypt.compare(
       updatePassDto.oldPassword,
       user.password,
     );
     if (!isPasswordValid) {
-      throw new Error('Invalid password');
+      throw new NotFoundException('Invalid password');
     }
     if (updatePassDto.newPassword !== updatePassDto.confirmPassword) {
-      throw new Error('Passwords do not match');
+      throw new NotFoundException('Passwords do not match');
     }
     updatePassDto.newPassword = await bcrypt.hash(
       updatePassDto.newPassword as string,
@@ -81,6 +89,11 @@ export class UsersService {
   }
 
   async remove(id: string) {
-    return await this.userModel.findByIdAndDelete(id).exec();
+    const user = await this.findById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const deletedUser = await this.userModel.findByIdAndDelete(id).exec();
+    return deletedUser;
   }
 }
