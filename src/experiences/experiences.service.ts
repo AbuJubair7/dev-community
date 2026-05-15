@@ -1,26 +1,45 @@
-import { Injectable } from '@nestjs/common';
+import { Model } from 'mongoose';
 import { CreateExperienceDto } from './dto/create-experience.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
+import { Experience } from './entities/experience.entity';
+import { Injectable } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import crypto from 'crypto';
 
 @Injectable()
 export class ExperiencesService {
-  create(createExperienceDto: CreateExperienceDto) {
-    return 'This action adds a new experience';
+  constructor(
+    @InjectModel(Experience.name) private experienceModel: Model<Experience>,
+  ) {}
+
+  create(createExperienceDto: CreateExperienceDto, id: string) {
+    const exp = this.experienceModel.create({
+      _id: crypto.randomUUID(),
+      ...createExperienceDto,
+      userId: id,
+    });
+    return exp;
   }
 
-  findAll() {
-    return `This action returns all experiences`;
+  findAll(id: string) {
+    const experiences = this.experienceModel.find({ userId: id }).exec();
+    return experiences;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} experience`;
+  findOne(id: string) {
+    const exp = this.experienceModel.findById(id).exec();
+    return exp;
   }
 
-  update(id: number, updateExperienceDto: UpdateExperienceDto) {
-    return `This action updates a #${id} experience`;
+  update(id: string, updateExperienceDto: UpdateExperienceDto) {
+    const exp = this.experienceModel
+      .findByIdAndUpdate(id, updateExperienceDto, { new: true })
+      .exec();
+    return exp;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} experience`;
+  remove(id: string) {
+    const exp = this.experienceModel.findByIdAndDelete(id).exec();
+    return exp;
   }
 }
