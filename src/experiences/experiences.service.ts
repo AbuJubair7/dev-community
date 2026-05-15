@@ -40,6 +40,6 @@ export class ExperiencesService {
 
   remove(id: string) {
     const exp = this.experienceModel.findByIdAndDelete(id).exec();
-    return exp;
+    return { message: 'Experience deleted successfully', experience: exp };
   }
 }
