@@ -27,7 +27,7 @@ export class PostsService {
     return await this.postModel.findById(id).exec();
   }
 
-  async findPostByUserId(userId: string) {
+  async findOneByUserId(userId: string) {
     return await this.postModel.find({ userId }).exec();
   }
 
