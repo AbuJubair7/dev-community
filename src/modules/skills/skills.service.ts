@@ -26,27 +26,25 @@ export class SkillsService {
 
   async findOne(id: string) {
     const skill = await this.skillModel.findById(id).exec();
-    if (!skill) {
-      throw new NotFoundException('Skill not found');
-    }
     return skill;
   }
 
-  async update(id: string, updateSkillDto: UpdateSkillDto) {
+  async findOneByUserId(userId: string) {
+    const skills = await this.skillModel.find({ userId }).exec();
+    return skills;
+  }
+
+  async update(skillId: string, userId: string, updateSkillDto: UpdateSkillDto) {
     const skill = await this.skillModel
-      .findByIdAndUpdate(id, updateSkillDto, { new: true })
+      .findOneAndUpdate({ _id: skillId, userId }, updateSkillDto, { new: true })
       .exec();
-    if (!skill) {
-      throw new NotFoundException('Skill not found');
-    }
+    if (!skill) throw new NotFoundException('Skill not found or not yours');
     return skill;
   }
 
-  async remove(id: string) {
-    const skill = await this.skillModel.findByIdAndDelete(id).exec();
-    if (!skill) {
-      throw new NotFoundException('Skill not found');
-    }
+  async remove(skillId: string, userId: string) {
+    const skill = await this.skillModel.findOneAndDelete({ _id: skillId, userId }).exec();
+    if (!skill) throw new NotFoundException('Skill not found or not yours');
     return skill;
   }
 }
