@@ -32,8 +32,8 @@ export class ExperiencesService {
   }
 
   async findOneByUserId(userId: string) {
-    const exp = await this.experienceModel.findOne({ userId }).exec();
-    return exp;
+    const experiences = await this.experienceModel.find({ userId }).exec();
+    return experiences;
   }
 
   async update(id: string, updateExperienceDto: UpdateExperienceDto) {

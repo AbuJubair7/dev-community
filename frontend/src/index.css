@@ -444,6 +444,14 @@ input, textarea { font-family: inherit; }
   color: var(--text-muted);
 }
 
+.post-card-author {
+  color: var(--accent-light);
+  font-weight: 500;
+  transition: color var(--transition);
+  text-decoration: none;
+}
+.post-card-author:hover { color: var(--accent); text-decoration: underline; }
+
 /* ─── Skill Tag ───────────────────────────────────────────────────────────── */
 .skill-tag {
   display: inline-flex;

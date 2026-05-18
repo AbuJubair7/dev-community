@@ -62,13 +62,20 @@ export default function PostDetail() {
         <h1 className="post-detail-title">{post.title}</h1>
 
         <div className="post-detail-meta">
-          <span>By <strong style={{ color: 'var(--text-primary)' }}>{authorName}</strong></span>
+          <span>
+            By{' '}
+            {isOwner ? (
+              <Link to="/profile" className="post-card-author">You</Link>
+            ) : (
+              <Link to={`/users/${post.userId}`} className="post-card-author">{authorName}</Link>
+            )}
+          </span>
           <span>·</span>
           <span>Posted {formatDate(post.createdAt)}</span>
           {isOwner && (
             <>
               <span>·</span>
-              <span style={{ color: 'var(--accent-light)' }}>Your post</span>
+              <span style={{ color: 'var(--accent-light)', fontSize: 12 }}>✏️ Your post</span>
             </>
           )}
         </div>

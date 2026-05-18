@@ -14,6 +14,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { JwtGuard } from '../auth/guard/jwt.guard';
 import { Request } from 'express';
+import { SelfGuard } from '../auth/guard/self.guard';
 
 @UseGuards(JwtGuard)
 @Controller('posts')
@@ -40,13 +41,15 @@ export class PostsController {
     return this.postsService.findOneByUserId(userId);
   }
 
-  @Patch()
-  update(@Req() req: Request, @Body() updatePostDto: UpdatePostDto) {
-    return this.postsService.update((req.user as any).id, updatePostDto);
+  @UseGuards(SelfGuard)
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
+    return this.postsService.update(id, updatePostDto);
   }
 
-  @Delete()
-  remove(@Req() req: Request) {
-    return this.postsService.remove((req.user as any).id);
+  @UseGuards(SelfGuard)
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.postsService.remove(id);
   }
 }

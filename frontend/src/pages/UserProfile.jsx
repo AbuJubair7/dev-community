@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { getUserById } from '../services/users.service.js';
-import { getSkills } from '../services/skills.service.js';
-import { getExperiences } from '../services/experiences.service.js';
-import { getPosts } from '../services/posts.service.js';
+import { getSkillsByUserId } from '../services/skills.service.js';
+import { getExperiencesByUserId } from '../services/experiences.service.js';
+import { getPostsByUserId } from '../services/posts.service.js';
 import Spinner from '../components/Spinner.jsx';
 import ErrorCard from '../components/ErrorCard.jsx';
 import EmptyState from '../components/EmptyState.jsx';
@@ -47,23 +47,21 @@ export default function UserProfile() {
   useEffect(() => {
     if (!isAuth) { navigate('/login', { replace: true }); return; }
 
+    // Each resource now has its own dedicated endpoint — no client-side filtering
     Promise.all([
       getUserById(id, token),
-      getSkills(token),
-      getExperiences(token),
-      getPosts(token),
+      getSkillsByUserId(id, token),
+      getExperiencesByUserId(id, token),
+      getPostsByUserId(id, token),
     ])
-      .then(([u, s, e, allPosts]) => {
+      .then(([u, s, e, p]) => {
         setProfile(u);
-        setSkills(s);
-        setExp(e);
+        // Guard: always set arrays even if the API returns null or a single object
+        setSkills(Array.isArray(s) ? s : s ? [s] : []);
+        setExp(Array.isArray(e) ? e : e ? [e] : []);
         const authorName = `${u.fname} ${u.lname}`.trim();
-        // Filter posts that belong to this user and attach their real name
-        setPosts(
-          allPosts
-            .filter((p) => p.userId === id || p.userId === u._id)
-            .map((p) => ({ ...p, userName: authorName }))
-        );
+        const postsArr = Array.isArray(p) ? p : p ? [p] : [];
+        setPosts(postsArr.map((post) => ({ ...post, userName: authorName })));
       })
       .catch((err) => setError(err.message || 'Failed to load profile.'))
       .finally(() => setLoading(false));
@@ -83,19 +81,18 @@ export default function UserProfile() {
           <Link to="/members" className="btn-ghost btn-sm">← Back to members</Link>
         </div>
 
-        {/* Header */}
+        {/* Profile header */}
         <div className="profile-header">
-          <div
-            className="avatar avatar-lg"
-            style={{ background: bg, color }}
-          >
+          <div className="avatar avatar-lg" style={{ background: bg, color }}>
             {initials(profile)}
           </div>
           <div className="profile-info">
             <h1>{profile.fname} {profile.lname}</h1>
             <p>{profile.email}</p>
-            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
-              {posts.length} post{posts.length !== 1 ? 's' : ''} · {skills.length} skill{skills.length !== 1 ? 's' : ''}
+            <p style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 6, display: 'flex', gap: 14 }}>
+              <span>📝 {posts.length} post{posts.length !== 1 ? 's' : ''}</span>
+              <span>🏷️ {skills.length} skill{skills.length !== 1 ? 's' : ''}</span>
+              <span>💼 {experiences.length} experience{experiences.length !== 1 ? 's' : ''}</span>
             </p>
           </div>
         </div>
@@ -120,35 +117,27 @@ export default function UserProfile() {
 
         {/* Posts tab */}
         {activeTab === 'posts' && (
-          posts.length === 0 ? (
-            <EmptyState icon="📝" title="No posts yet" message="This member hasn't shared anything yet." />
-          ) : (
-            <div className="posts-grid">
-              {posts.map((p) => <PostCard key={p._id} post={p} />)}
-            </div>
-          )
+          posts.length === 0
+            ? <EmptyState icon="📝" title="No posts yet" message="This member hasn't shared anything yet." />
+            : <div className="posts-grid">{posts.map((p) => <PostCard key={p._id} post={p} />)}</div>
         )}
 
         {/* Skills tab */}
         {activeTab === 'skills' && (
-          skills.length === 0 ? (
-            <EmptyState icon="🏷️" message="No skills listed." />
-          ) : (
-            <div className="skills-wrap" style={{ paddingTop: 4 }}>
-              {skills.map((s) => <SkillTag key={s._id} name={s.name} />)}
-            </div>
-          )
+          skills.length === 0
+            ? <EmptyState icon="🏷️" message="No skills listed by this member." />
+            : <div className="skills-wrap" style={{ paddingTop: 4 }}>
+                {skills.map((s) => <SkillTag key={s._id} name={s.name} />)}
+              </div>
         )}
 
         {/* Experience tab */}
         {activeTab === 'experience' && (
-          experiences.length === 0 ? (
-            <EmptyState icon="💼" message="No experience listed." />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {experiences.map((exp) => <ExperienceCard key={exp._id} exp={exp} />)}
-            </div>
-          )
+          experiences.length === 0
+            ? <EmptyState icon="💼" message="No work experience listed by this member." />
+            : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {experiences.map((exp) => <ExperienceCard key={exp._id} exp={exp} />)}
+              </div>
         )}
       </div>
     </div>

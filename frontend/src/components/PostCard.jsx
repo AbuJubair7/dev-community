@@ -11,15 +11,34 @@ export default function PostCard({ post }) {
     : post.content;
 
   const displayName = post.userName
-    || (post.userId && typeof post.userId === 'object' ? `${post.userId.fname || ''}${post.userId.lname ? ' ' + post.userId.lname : ''}`.trim() : post.userId)
+    || (post.userId && typeof post.userId === 'object'
+      ? `${post.userId.fname || ''} ${post.userId.lname || ''}`.trim()
+      : null)
     || 'Unknown';
+
+  // Build the author profile link
+  const authorId = post.userId && typeof post.userId === 'object' ? post.userId._id : post.userId;
+  const authorLink = authorId ? `/users/${authorId}` : null;
 
   return (
     <Link to={`/posts/${post._id}`} className="post-card">
       <div className="post-card-title">{post.title}</div>
       {excerpt && <div className="post-card-excerpt">{excerpt}</div>}
       <div className="post-card-meta">
-        <span>By {displayName}</span>
+        <span>
+          By{' '}
+          {authorLink ? (
+            <Link
+              to={authorLink}
+              className="post-card-author"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {displayName}
+            </Link>
+          ) : (
+            <span>{displayName}</span>
+          )}
+        </span>
         <span>·</span>
         <span>{formatDate(post.createdAt)}</span>
       </div>

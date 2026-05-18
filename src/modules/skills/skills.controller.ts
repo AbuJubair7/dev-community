@@ -14,6 +14,7 @@ import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
 import { JwtGuard } from 'src/modules/auth/guard/jwt.guard';
 import { Request } from 'express';
+import { SelfGuard } from '../auth/guard/self.guard';
 
 @UseGuards(JwtGuard)
 @Controller('skills')
@@ -40,13 +41,15 @@ export class SkillsController {
     return this.skillsService.findOneByUserId(userId);
   }
 
-  @Patch()
-  update(@Req() req: Request, @Body() updateSkillDto: UpdateSkillDto) {
-    return this.skillsService.update((req.user as any).id, updateSkillDto);
+  @UseGuards(SelfGuard)
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateSkillDto: UpdateSkillDto) {
+    return this.skillsService.update(id, updateSkillDto);
   }
 
-  @Delete()
-  remove(@Req() req: Request) {
-    return this.skillsService.remove((req.user as any).id);
+  @UseGuards(SelfGuard)
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.skillsService.remove(id);
   }
 }

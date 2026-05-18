@@ -30,8 +30,8 @@ export class SkillsService {
   }
 
   async findOneByUserId(userId: string) {
-    const skill = await this.skillModel.findOne({ userId }).exec();
-    return skill;
+    const skills = await this.skillModel.find({ userId }).exec();
+    return skills;
   }
 
   async update(id: string, updateSkillDto: UpdateSkillDto) {
