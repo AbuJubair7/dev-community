@@ -13,7 +13,7 @@ import { ExperiencesService } from './experiences.service';
 import { CreateExperienceDto } from './dto/create-experience.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
 import { Request } from 'express';
-import { JwtGuard } from 'src/auth/guard/jwt.guard';
+import { JwtGuard } from 'src/modules/auth/guard/jwt.guard';
 
 @UseGuards(JwtGuard)
 @Controller('experiences')

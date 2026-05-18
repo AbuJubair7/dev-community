@@ -12,7 +12,7 @@ import {
 import { SkillsService } from './skills.service';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
-import { JwtGuard } from 'src/auth/guard/jwt.guard';
+import { JwtGuard } from 'src/modules/auth/guard/jwt.guard';
 import { Request } from 'express';
 
 @UseGuards(JwtGuard)

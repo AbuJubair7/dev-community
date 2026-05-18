@@ -7,8 +7,8 @@ import {
   Delete,
   UseGuards,
 } from '@nestjs/common';
-import { JwtGuard } from 'src/auth/guard/jwt.guard';
-import { SelfGuard } from 'src/auth/guard/self.guard';
+import { JwtGuard } from 'src/modules/auth/guard/jwt.guard';
+import { SelfGuard } from 'src/modules/auth/guard/self.guard';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePassDto } from './dto/update-pass.dto';
