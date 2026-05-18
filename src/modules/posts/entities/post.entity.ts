@@ -8,7 +8,7 @@ export class Post {
   @Prop({ type: String, primary: true })
   _id!: string;
 
-  @Prop({ type: String, ref: 'User', required: true })
+  @Prop()
   userId!: string;
 
   @Prop({ required: true })

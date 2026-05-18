@@ -35,13 +35,13 @@ export class SkillsController {
     return this.skillsService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSkillDto: UpdateSkillDto) {
-    return this.skillsService.update(id, updateSkillDto);
+  @Patch()
+  update(@Req() req: Request, @Body() updateSkillDto: UpdateSkillDto) {
+    return this.skillsService.update((req.user as any).id, updateSkillDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.skillsService.remove(id);
+  @Delete()
+  remove(@Req() req: Request) {
+    return this.skillsService.remove((req.user as any).id);
   }
 }

@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Req,
   Body,
   Patch,
   Param,
@@ -12,6 +13,7 @@ import { SelfGuard } from 'src/modules/auth/guard/self.guard';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePassDto } from './dto/update-pass.dto';
+import { Request } from 'express';
 
 @UseGuards(JwtGuard)
 @Controller('users')
@@ -23,30 +25,26 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
-  @UseGuards(SelfGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
   }
 
-  @UseGuards(SelfGuard)
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(id, updateUserDto);
+  @Patch()
+  update(@Req() req: Request, @Body() updateUserDto: UpdateUserDto) {
+    return this.usersService.update((req.user as any).id, updateUserDto);
   }
 
-  @UseGuards(SelfGuard)
-  @Patch(':id/password')
-  updatePassword(
-    @Param('id') id: string,
-    @Body() updatePassDto: UpdatePassDto,
-  ) {
-    return this.usersService.updatePassword(id, updatePassDto);
+  @Patch('password')
+  updatePassword(@Req() req: Request, @Body() updatePassDto: UpdatePassDto) {
+    return this.usersService.updatePassword(
+      (req.user as any).id,
+      updatePassDto,
+    );
   }
 
-  @UseGuards(SelfGuard)
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+  @Delete()
+  remove(@Req() req: Request) {
+    return this.usersService.remove((req.user as any).id);
   }
 }
