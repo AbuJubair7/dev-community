@@ -13,7 +13,7 @@ import { ExperiencesService } from './experiences.service';
 import { CreateExperienceDto } from './dto/create-experience.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
 import { Request } from 'express';
-import { JwtGuard } from 'src/auth/guard/jwt.guard';
+import { JwtGuard } from 'src/modules/auth/guard/jwt.guard';
 
 @UseGuards(JwtGuard)
 @Controller('experiences')
@@ -41,16 +41,19 @@ export class ExperiencesController {
     return this.experiencesService.findOne(id);
   }
 
-  @Patch(':id')
+  @Patch()
   update(
-    @Param('id') id: string,
+    @Req() req: Request,
     @Body() updateExperienceDto: UpdateExperienceDto,
   ) {
-    return this.experiencesService.update(id, updateExperienceDto);
+    return this.experiencesService.update(
+      (req.user as any).id,
+      updateExperienceDto,
+    );
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.experiencesService.remove(id);
+  @Delete()
+  remove(@Req() req: Request) {
+    return this.experiencesService.remove((req.user as any).id);
   }
 }
