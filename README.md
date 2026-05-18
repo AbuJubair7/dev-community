@@ -61,60 +61,71 @@ Post {
 
 ## API Endpoints
 
-### App
+> All routes marked **Yes** under Auth require a `Bearer <JWT>` token in the `Authorization` header.
+> JWT is issued on `/auth/register` and `/auth/login` and expires in **1 hour**.
 
-| Method | Endpoint | Description   | Auth Required |
-| ------ | -------- | ------------- | ------------- |
-| GET    | `/`      | Get hello msg | No            |
+---
 
 ### Auth
 
-| Method | Endpoint         | Description              | Auth Required |
-| ------ | ---------------- | ------------------------ | ------------- |
-| POST   | `/auth/register` | Register a new developer | No            |
-| POST   | `/auth/login`    | Login, returns JWT       | No            |
+| Method | Endpoint         | Description                          | Auth Required |
+| ------ | ---------------- | ------------------------------------ | ------------- |
+| POST   | `/auth/register` | Register a new developer             | No            |
+| POST   | `/auth/login`    | Login — returns `{ token, user }`    | No            |
+
+---
 
 ### Users
 
-| Method | Endpoint          | Description               | Auth Required |
-| ------ | ----------------- | ------------------------- | ------------- |
-| GET    | `/users`          | Get all developers        | Yes           |
-| GET    | `/users/:id`      | Get a developer's profile | Yes           |
-| PATCH  | `/users`          | Update own profile        | Yes           |
-| PATCH  | `/users/password` | Update own password       | Yes           |
-| DELETE | `/users`          | Delete own profile        | Yes           |
+| Method | Endpoint            | Description                        | Auth Required |
+| ------ | ------------------- | ---------------------------------- | ------------- |
+| GET    | `/users`            | Get all users                      | Yes           |
+| GET    | `/users/:id`        | Get a user by their ID             | Yes           |
+| PATCH  | `/users`            | Update own profile (fname, lname)  | Yes           |
+| PATCH  | `/users/password`   | Update own password                | Yes           |
+| DELETE | `/users`            | Delete own account                 | Yes           |
+
+---
 
 ### Skills
 
-| Method | Endpoint      | Description             | Auth Required |
-| ------ | ------------- | ----------------------- | ------------- |
-| POST   | `/skills`     | Add a skill             | Yes           |
-| GET    | `/skills`     | Get all own skills      | Yes           |
-| GET    | `/skills/:id` | Get a specific skill    | Yes           |
-| PATCH  | `/skills`     | Update an own skill     | Yes           |
-| DELETE | `/skills`     | Delete an own skill     | Yes           |
+| Method | Endpoint                  | Description                                          | Auth Required |
+| ------ | ------------------------- | ---------------------------------------------------- | ------------- |
+| POST   | `/skills`                 | Add a skill for the logged-in user                   | Yes           |
+| GET    | `/skills`                 | Get all skills of the logged-in user                 | Yes           |
+| GET    | `/skills/:id`             | Get a specific skill by its ID                       | Yes           |
+| GET    | `/skills/user/:userId`    | Get all skills for any user by their user ID         | Yes           |
+| PATCH  | `/skills/:id`             | Update a skill by its ID (must be owner)             | Yes           |
+| DELETE | `/skills/:id`             | Delete a skill by its ID (must be owner)             | Yes           |
+
+---
 
 ### Experiences
 
-| Method | Endpoint           | Description                 | Auth Required |
-| ------ | ------------------ | --------------------------- | ------------- |
-| POST   | `/experiences`     | Add an experience           | Yes           |
-| GET    | `/experiences`     | Get all own experiences     | Yes           |
-| GET    | `/experiences/:id` | Get a specific experience   | Yes           |
-| PATCH  | `/experiences`     | Update an own experience    | Yes           |
-| DELETE | `/experiences`     | Delete an own experience    | Yes           |
+| Method | Endpoint                       | Description                                               | Auth Required |
+| ------ | ------------------------------ | --------------------------------------------------------- | ------------- |
+| POST   | `/experiences`                 | Add an experience for the logged-in user                  | Yes           |
+| GET    | `/experiences`                 | Get all experiences of the logged-in user                 | Yes           |
+| GET    | `/experiences/:id`             | Get a specific experience by its ID                       | Yes           |
+| GET    | `/experiences/user/:userId`    | Get all experiences for any user by their user ID         | Yes           |
+| PATCH  | `/experiences/:id`             | Update an experience by its ID (must be owner)            | Yes           |
+| DELETE | `/experiences/:id`             | Delete an experience by its ID (must be owner)            | Yes           |
+
+---
 
 ### Posts
 
-| Method | Endpoint     | Description          | Auth Required |
-| ------ | ------------ | -------------------- | ------------- |
-| POST   | `/posts`     | Create a post        | Yes           |
-| GET    | `/posts`     | Get all posts (feed) | Yes           |
-| GET    | `/posts/:id` | Get a single post    | Yes           |
-| PATCH  | `/posts`     | Update own post      | Yes           |
-| DELETE | `/posts`     | Delete own post      | Yes           |
+| Method | Endpoint                  | Description                                        | Auth Required |
+| ------ | ------------------------- | -------------------------------------------------- | ------------- |
+| POST   | `/posts`                  | Create a new post                                  | Yes           |
+| GET    | `/posts`                  | Get all posts (community feed)                     | Yes           |
+| GET    | `/posts/:id`              | Get a single post by its ID                        | Yes           |
+| GET    | `/posts/user/:userId`     | Get all posts by a specific user                   | Yes           |
+| PATCH  | `/posts/:id`              | Update a post by its ID (must be owner)            | Yes           |
+| DELETE | `/posts/:id`              | Delete a post by its ID (must be owner)            | Yes           |
 
 ---
+
 ## Project setup
 
 ```bash
