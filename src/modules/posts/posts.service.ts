@@ -27,6 +27,10 @@ export class PostsService {
     return await this.postModel.findById(id).exec();
   }
 
+  async findPostByUserId(userId: string) {
+    return await this.postModel.find({ userId }).exec();
+  }
+
   async update(id: string, updatePostDto: UpdatePostDto) {
     return await this.postModel
       .findByIdAndUpdate(id, updatePostDto, { new: true })

@@ -7,10 +7,14 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePassDto } from './dto/update-pass.dto';
 import { User } from './entities/user.entity';
+import { PostsService } from '../posts/posts.service';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    private postsService: PostsService,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
     const user = await this.userModel
@@ -48,6 +52,10 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  async findUserPosts(userId: string) {
+    return await this.postsService.findPostByUserId(userId);
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
