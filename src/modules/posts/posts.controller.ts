@@ -35,6 +35,11 @@ export class PostsController {
     return this.postsService.findOne(id);
   }
 
+  @Get('/user/:userId')
+  findUserPosts(@Param('userId') userId: string) {
+    return this.postsService.findPostByUserId(userId);
+  }
+
   @Patch()
   update(@Req() req: Request, @Body() updatePostDto: UpdatePostDto) {
     return this.postsService.update((req.user as any).id, updatePostDto);

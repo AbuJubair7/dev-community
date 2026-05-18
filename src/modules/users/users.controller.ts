@@ -28,11 +28,7 @@ export class UsersController {
   findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
   }
-
-  @Get('my/posts')
-  findUserPosts(@Req() req: Request) {
-    return this.usersService.findUserPosts((req.user as any).id);
-  }
+  
 
   @Patch()
   update(@Req() req: Request, @Body() updateUserDto: UpdateUserDto) {
