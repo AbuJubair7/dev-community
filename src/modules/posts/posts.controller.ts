@@ -37,7 +37,7 @@ export class PostsController {
 
   @Get('/user/:userId')
   findUserPosts(@Param('userId') userId: string) {
-    return this.postsService.findPostByUserId(userId);
+    return this.postsService.findOneByUserId(userId);
   }
 
   @Patch()
