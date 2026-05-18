@@ -54,10 +54,6 @@ export class UsersService {
     return user;
   }
 
-  async findUserPosts(userId: string) {
-    return await this.postsService.findPostByUserId(userId);
-  }
-
   async update(id: string, updateUserDto: UpdateUserDto) {
     const user = await this.findById(id);
     if (!user) {
