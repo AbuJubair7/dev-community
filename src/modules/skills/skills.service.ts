@@ -32,6 +32,14 @@ export class SkillsService {
     return skill;
   }
 
+  async findOneByUserId(userId: string) {
+    const skill = await this.skillModel.findOne({ userId }).exec();
+    if (!skill) {
+      throw new NotFoundException('Skill not found');
+    }
+    return skill;
+  }
+
   async update(id: string, updateSkillDto: UpdateSkillDto) {
     const skill = await this.skillModel
       .findByIdAndUpdate(id, updateSkillDto, { new: true })

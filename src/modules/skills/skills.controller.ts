@@ -35,6 +35,11 @@ export class SkillsController {
     return this.skillsService.findOne(id);
   }
 
+  @Get('user/:userId')
+  findOneByUserId(@Param('userId') userId: string) {
+    return this.skillsService.findOneByUserId(userId);
+  }
+
   @Patch()
   update(@Req() req: Request, @Body() updateSkillDto: UpdateSkillDto) {
     return this.skillsService.update((req.user as any).id, updateSkillDto);

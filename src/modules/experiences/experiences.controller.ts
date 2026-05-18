@@ -41,6 +41,11 @@ export class ExperiencesController {
     return this.experiencesService.findOne(id);
   }
 
+  @Get('user/:userId')
+  findOneByUserId(@Param('userId') userId: string) {
+    return this.experiencesService.findOneByUserId(userId);
+  }
+
   @Patch()
   update(
     @Req() req: Request,
