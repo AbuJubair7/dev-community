@@ -41,15 +41,13 @@ export class PostsController {
     return this.postsService.findOneByUserId(userId);
   }
 
-  @UseGuards(SelfGuard)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto) {
-    return this.postsService.update(id, updatePostDto);
+  update(@Param('id') id: string, @Body() updatePostDto: UpdatePostDto, @Req() req: Request) {
+    return this.postsService.update(id, (req.user as any).id, updatePostDto);
   }
 
-  @UseGuards(SelfGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.postsService.remove(id);
+  remove(@Param('id') id: string, @Req() req: Request) {
+    return this.postsService.remove(id, (req.user as any).id);
   }
 }

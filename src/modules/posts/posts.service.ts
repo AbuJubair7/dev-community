@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -31,13 +31,17 @@ export class PostsService {
     return await this.postModel.find({ userId }).exec();
   }
 
-  async update(id: string, updatePostDto: UpdatePostDto) {
-    return await this.postModel
-      .findByIdAndUpdate(id, updatePostDto, { new: true })
+  async update(postId: string, userId: string, updatePostDto: UpdatePostDto) {
+    const post = await this.postModel
+      .findOneAndUpdate({ _id: postId, userId }, updatePostDto, { new: true })
       .exec();
+    if (!post) throw new NotFoundException('Post not found or not yours');
+    return post;
   }
 
-  async remove(id: string) {
-    return await this.postModel.findByIdAndDelete(id).exec();
+  async remove(postId: string, userId: string) {
+    const post = await this.postModel.findOneAndDelete({ _id: postId, userId }).exec();
+    if (!post) throw new NotFoundException('Post not found or not yours');
+    return post;
   }
 }

@@ -47,18 +47,21 @@ export class ExperiencesController {
     return this.experiencesService.findOneByUserId(userId);
   }
 
-  @UseGuards(SelfGuard)
   @Patch(':id')
   update(
     @Param('id') id: string,
     @Body() updateExperienceDto: UpdateExperienceDto,
+    @Req() req: Request,
   ) {
-    return this.experiencesService.update(id, updateExperienceDto);
+    return this.experiencesService.update(
+      id,
+      (req.user as any).id,
+      updateExperienceDto,
+    );
   }
 
-  @UseGuards(SelfGuard)
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.experiencesService.remove(id);
+  remove(@Param('id') id: string, @Req() req: Request) {
+    return this.experiencesService.remove(id, (req.user as any).id);
   }
 }
