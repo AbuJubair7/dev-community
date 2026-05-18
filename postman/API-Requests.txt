@@ -1,213 +1,207 @@
-Base URL: {{baseUrl}} (default: http://localhost:3000)
+API Requests
 
-=== Auth ===
+1. App API
+-----------------------------------
+Method: GET
+URL: /
+Controller/Function: AppController.getHello
+Auth Required: None
+Response Example: HTTP 200 (string)
 
-1) POST /auth/register
-- Controller: AuthController.register
-- Auth: none
-- Headers: Content-Type: application/json
-- Body example:
+2. Auth API
+-----------------------------------
+Method: POST
+URL: /auth/register
+Controller/Function: AuthController.register
+Auth Required: None
+Request Body (JSON):
 {
   "fname": "John",
   "lname": "Doe",
-  "email": "john@example.com",
-  "password": "Passw0rd1"
+  "email": "user@example.com",
+  "password": "Password1"
 }
-- Response: 201 Created (user object)
+Response Example: HTTP 201
 
-2) POST /auth/login
-- Controller: AuthController.login
-- Auth: none
-- Headers: Content-Type: application/json
-- Body example:
+Method: POST
+URL: /auth/login
+Controller/Function: AuthController.login
+Auth Required: None
+Request Body (JSON):
 {
-  "email": "john@example.com",
-  "password": "Passw0rd1"
+  "email": "user@example.com",
+  "password": "Password1"
 }
-- Response: 200 OK (authentication token / user info)
+Response Example: HTTP 201
 
-=== Users ===
-Note: All `users` endpoints require `Authorization: Bearer <token>` (JwtGuard). Endpoints with SelfGuard additionally require the token user to match the `:id` path param.
+3. Users API
+-----------------------------------
+Method: GET
+URL: /users
+Controller/Function: UsersController.findAll
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
 
-1) GET /users
-- Controller: UsersController.findAll
-- Auth: JWT required
-- Headers: Authorization, Accept: application/json
-- Query params: optional pagination/filtering (not inferred statically)
-- Response: 200 OK (array of users)
+Method: GET
+URL: /users/:id
+Controller/Function: UsersController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
 
-2) GET /users/:id
-- Controller: UsersController.findOne
-- Auth: JWT + SelfGuard
-- Headers: Authorization
-- Path params: id (string)
-- Response: 200 OK (user)
-
-3) PATCH /users/:id
-- Controller: UsersController.update
-- Auth: JWT + SelfGuard
-- Headers: Authorization, Content-Type: application/json
-- Body example (UpdateUserDto - partial):
+Method: PATCH
+URL: /users
+Controller/Function: UsersController.update
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
 {
   "fname": "John",
-  "lname": "Smith",
-  "password": "NewPass123"
+  "lname": "Doe"
 }
-- Response: 200 OK (updated user)
 
-4) PATCH /users/:id/password
-- Controller: UsersController.updatePassword
-- Auth: JWT + SelfGuard
-- Headers: Authorization, Content-Type: application/json
-- Body example (UpdatePassDto):
+Method: PATCH
+URL: /users/password
+Controller/Function: UsersController.updatePassword
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
 {
-  "oldPassword": "OldPass1",
-  "newPassword": "NewPass123",
-  "confirmPassword": "NewPass123"
+  "oldPassword": "OldPassword1",
+  "newPassword": "NewPassword1",
+  "confirmPassword": "NewPassword1"
 }
-- Response: 200 OK (success message)
 
-5) DELETE /users/:id
-- Controller: UsersController.remove
-- Auth: JWT + SelfGuard
-- Headers: Authorization
-- Response: 200 OK (deletion result)
+Method: DELETE
+URL: /users
+Controller/Function: UsersController.remove
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
 
-=== Posts ===
-Note: `posts` endpoints are protected by JWT (JwtGuard on controller).
-
-1) POST /posts
-- Controller: PostsController.create
-- Auth: JWT required
-- Headers: Authorization, Content-Type: application/json
-- Body example (CreatePostDto):
+4. Skills API
+-----------------------------------
+Method: POST
+URL: /skills
+Controller/Function: SkillsController.create
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
 {
-  "title": "My first post",
-  "content": "This is the post content."
+  "name": "JavaScript"
 }
-- Response: 201 Created (post object)
 
-2) GET /posts
-- Controller: PostsController.findAll
-- Auth: JWT required
-- Headers: Authorization
-- Response: 200 OK (array of posts)
+Method: GET
+URL: /skills
+Controller/Function: SkillsController.findAll
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
 
-3) GET /posts/:id
-- Controller: PostsController.findOne
-- Auth: JWT required
-- Path params: id (string)
-- Response: 200 OK (post)
+Method: GET
+URL: /skills/:id
+Controller/Function: SkillsController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
 
-4) PATCH /posts/:id
-- Controller: PostsController.update
-- Auth: JWT required
-- Headers: Authorization, Content-Type: application/json
-- Body example (UpdatePostDto - partial):
+Method: PATCH
+URL: /skills
+Controller/Function: SkillsController.update
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
 {
-  "title": "Updated title"
+  "name": "Updated Skill Name"
 }
-- Response: 200 OK (updated post)
 
-5) DELETE /posts/:id
-- Controller: PostsController.remove
-- Auth: JWT required
-- Headers: Authorization
-- Response: 200 OK (deletion result)
+Method: DELETE
+URL: /skills
+Controller/Function: SkillsController.remove
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
 
-=== Skills ===
-Note: `skills` controller uses JwtGuard.
-
-1) POST /skills
-- Controller: SkillsController.create
-- Auth: JWT required
-- Headers: Authorization, Content-Type: application/json
-- Body example (CreateSkillDto):
+5. Experiences API
+-----------------------------------
+Method: POST
+URL: /experiences
+Controller/Function: ExperiencesController.create
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
 {
-  "name": "TypeScript"
-}
-- Response: 201 Created (skill)
-
-2) GET /skills
-- Controller: SkillsController.findAll
-- Auth: JWT required
-- Headers: Authorization
-- Response: 200 OK (array of skills for the authenticated user)
-
-3) GET /skills/:id
-- Controller: SkillsController.findOne
-- Auth: JWT required
-- Path params: id
-- Response: 200 OK (skill)
-
-4) PATCH /skills/:id
-- Controller: SkillsController.update
-- Auth: JWT required
-- Headers: Authorization, Content-Type: application/json
-- Body example (UpdateSkillDto - partial):
-{
-  "name": "Advanced TypeScript"
-}
-- Response: 200 OK (updated skill)
-
-5) DELETE /skills/:id
-- Controller: SkillsController.remove
-- Auth: JWT required
-- Headers: Authorization
-- Response: 200 OK (deletion result)
-
-=== Experiences ===
-Note: `experiences` controller uses JwtGuard.
-
-1) POST /experiences
-- Controller: ExperiencesController.create
-- Auth: JWT required
-- Headers: Authorization, Content-Type: application/json
-- Body example (CreateExperienceDto):
-{
-  "companyName": "Acme Co",
+  "companyName": "Tech Corp",
   "role": "Software Engineer",
   "startDate": "2023-01-01",
   "endDate": "2024-01-01",
-  "description": "Worked on backend services."
+  "description": "Developed backend systems."
 }
-- Response: 201 Created (experience)
 
-2) GET /experiences
-- Controller: ExperiencesController.findAll
-- Auth: JWT required
-- Headers: Authorization
-- Response: 200 OK (array of experiences for user)
+Method: GET
+URL: /experiences
+Controller/Function: ExperiencesController.findAll
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
 
-3) GET /experiences/:id
-- Controller: ExperiencesController.findOne
-- Auth: JWT required
-- Path params: id
-- Response: 200 OK (experience)
+Method: GET
+URL: /experiences/:id
+Controller/Function: ExperiencesController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
 
-4) PATCH /experiences/:id
-- Controller: ExperiencesController.update
-- Auth: JWT required
-- Headers: Authorization, Content-Type: application/json
-- Body example (UpdateExperienceDto - partial):
+Method: PATCH
+URL: /experiences
+Controller/Function: ExperiencesController.update
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
 {
-  "description": "Updated description"
+  "companyName": "Updated Tech Corp"
 }
-- Response: 200 OK (updated experience)
 
-5) DELETE /experiences/:id
-- Controller: ExperiencesController.remove
-- Auth: JWT required
-- Headers: Authorization
-- Response: 200 OK (deletion result)
+Method: DELETE
+URL: /experiences
+Controller/Function: ExperiencesController.remove
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
 
-=== App root ===
-1) GET /
-- Controller: AppController.getHello
-- Auth: none
-- Response: 200 OK (string)
+6. Posts API
+-----------------------------------
+Method: POST
+URL: /posts
+Controller/Function: PostsController.create
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "title": "My First Post",
+  "content": "This is the content of my post."
+}
 
-=== Notes ===
-- Use `Authorization: Bearer {{token}}` where JWT is required.
-- Replace `{{baseUrl}}` with your server URL (e.g., http://localhost:3000).
-- DTO-based request bodies were inferred from TypeScript DTO classes; adjust fields as needed.
+Method: GET
+URL: /posts
+Controller/Function: PostsController.findAll
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /posts/:id
+Controller/Function: PostsController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: PATCH
+URL: /posts
+Controller/Function: PostsController.update
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "title": "Updated Post Title"
+}
+
+Method: DELETE
+URL: /posts
+Controller/Function: PostsController.remove
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
