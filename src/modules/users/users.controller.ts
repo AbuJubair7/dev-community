@@ -9,7 +9,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtGuard } from 'src/modules/auth/guard/jwt.guard';
-import { SelfGuard } from 'src/modules/auth/guard/self.guard';
 import { UsersService } from './users.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePassDto } from './dto/update-pass.dto';
@@ -28,6 +27,11 @@ export class UsersController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findById(id);
+  }
+
+  @Get('my/posts')
+  findUserPosts(@Req() req: Request) {
+    return this.usersService.findUserPosts((req.user as any).id);
   }
 
   @Patch()
