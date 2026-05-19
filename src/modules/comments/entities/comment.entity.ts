@@ -8,14 +8,17 @@ export class Comment {
   @Prop({ type: String, primary: true })
   _id!: string;
 
-  @Prop()
+  @Prop({ required: true })
   postId!: string;
 
-  @Prop()
+  @Prop({ required: true })
   userId!: string;
 
   @Prop({ required: true })
   content!: string;
+
+  @Prop({ type: String, default: null })
+  parentId!: string | null;
 }
 
 export const CommentSchema = SchemaFactory.createForClass(Comment);
