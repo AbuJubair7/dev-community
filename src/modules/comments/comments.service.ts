@@ -1,26 +1,79 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Comment } from './entities/comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { buildTree } from 'src/helpers/comments-tree';
+import crypto from 'crypto';
+import { deleteReplies } from 'src/helpers/delete-replies';
 
 @Injectable()
 export class CommentsService {
-  create(createCommentDto: CreateCommentDto) {
-    return 'This action adds a new comment';
+  constructor(
+    @InjectModel(Comment.name) private commentModel: Model<Comment>,
+  ) {}
+
+  async create(createCommentDto: CreateCommentDto, userId: string) {
+    const { postId, content, parentId = null } = createCommentDto;
+
+    if (parentId) {
+      const parent = await this.commentModel.findById(parentId).exec();
+      if (!parent) throw new NotFoundException('Parent comment not found');
+    }
+
+    const comment = await this.commentModel.create({
+      _id: crypto.randomUUID(),
+      postId,
+      userId,
+      content,
+      parentId,
+    });
+
+    return comment;
   }
 
-  findAll() {
-    return `This action returns all comments`;
+  async findAllByPost(postId: string) {
+    const all = await this.commentModel
+      .find({ postId })
+      .sort({ createdAt: 1 })
+      .lean()
+      .exec();
+
+    return buildTree(all);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} comment`;
+  async findOne(id: string) {
+    const comment = await this.commentModel.findById(id).exec();
+    if (!comment) throw new NotFoundException('Comment not found');
+    return comment;
   }
 
-  update(id: number, updateCommentDto: UpdateCommentDto) {
-    return `This action updates a #${id} comment`;
+  async update(id: string, userId: string, updateCommentDto: UpdateCommentDto) {
+    const comment = await this.commentModel
+      .findOneAndUpdate({ _id: id, userId }, updateCommentDto, { new: true })
+      .exec();
+
+    if (!comment)
+      throw new ForbiddenException('Comment not found or not yours');
+    return comment;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} comment`;
+  async remove(id: string, userId: string) {
+    const comment = await this.commentModel
+      .findOneAndDelete({ _id: id, userId })
+      .exec();
+
+    if (!comment)
+      throw new ForbiddenException('Comment not found or not yours');
+
+    // Delete all replies recursively 
+    await deleteReplies(id, this.commentModel);
+
+    return { message: 'Comment deleted' };
   }
 }
