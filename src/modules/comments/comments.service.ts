@@ -10,7 +10,7 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { buildTree } from 'src/helpers/comments-tree';
 import crypto from 'crypto';
-import { deleteReplies } from 'src/helpers/delete-replies';
+import { updateReplyStatus } from 'src/helpers/update-reply-status';
 
 @Injectable()
 export class CommentsService {
@@ -65,15 +65,19 @@ export class CommentsService {
 
   async remove(id: string, userId: string) {
     const comment = await this.commentModel
-      .findOneAndDelete({ _id: id, userId })
+      .findOneAndUpdate(
+        { _id: id, userId },
+        { isDeleted: true, content: '[This comment has been deleted]' },
+        { new: true }
+      )
       .exec();
 
     if (!comment)
       throw new ForbiddenException('Comment not found or not yours');
 
-    // Delete all replies recursively 
-    await deleteReplies(id, this.commentModel);
+    // Cascade soft-delete all replies recursively
+    // await updateReplyStatus(id, this.commentModel);
 
-    return { message: 'Comment deleted' };
+    return { message: 'Comment deleted successfully' };
   }
 }

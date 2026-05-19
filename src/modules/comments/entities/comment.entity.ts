@@ -19,6 +19,9 @@ export class Comment {
 
   @Prop({ type: String, default: null })
   parentId!: string | null;
+
+  @Prop({ type: Boolean, default: false })
+  isDeleted!: boolean;
 }
 
 export const CommentSchema = SchemaFactory.createForClass(Comment);
