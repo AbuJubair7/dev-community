@@ -7,6 +7,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { SkillsModule } from './modules/skills/skills.module';
 import { ExperiencesModule } from './modules/experiences/experiences.module';
 import { PostsModule } from './modules/posts/posts.module';
+import { CommentsModule } from './modules/comments/comments.module';
 import 'dotenv/config';
 
 @Module({
@@ -17,6 +18,7 @@ import 'dotenv/config';
     SkillsModule,
     ExperiencesModule,
     PostsModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
