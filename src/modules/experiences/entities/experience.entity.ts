@@ -1,15 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
+import { User } from '../../users/entities/user.entity';
 
 export type ExperienceDocument = HydratedDocument<Experience>;
 
 @Schema()
 export class Experience {
-  @Prop({ type: String, primary: true })
-  _id!: string;
-
-  @Prop({ type: String, ref: 'User', required: true })
-  userId!: string;
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: User.name, required: true })
+  userId!: Types.ObjectId | User;
 
   @Prop({ required: true })
   companyName!: string;
