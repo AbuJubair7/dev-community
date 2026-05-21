@@ -1,4 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { CreateUserDto } from 'src/modules/users/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/modules/users/users.service';
@@ -14,7 +19,7 @@ export class AuthService {
   async register(createUserDto: CreateUserDto) {
     const res = await this.usersService.create(createUserDto);
     if (!res) {
-      throw new Error('User not created');
+      throw new InternalServerErrorException('User not created');
     }
     const token = await this.signToken(res._id, res.email);
     res.password = '****************';
@@ -25,16 +30,22 @@ export class AuthService {
   }
 
   async login(loginDto: LoginDto) {
-    const user = await this.usersService.findByEmail(loginDto.email);
-    if (!user) {
-      throw new Error('User not found');
+    let user;
+    try {
+      user = await this.usersService.findByEmail(loginDto.email);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+      throw error;
     }
+
     const isPasswordValid = await bcrypt.compare(
       loginDto.password,
       user.password,
     );
     if (!isPasswordValid) {
-      throw new Error('Invalid password');
+      throw new UnauthorizedException('Invalid credentials');
     }
     const token = await this.signToken(user._id, user.email);
     user.password = '****************';
