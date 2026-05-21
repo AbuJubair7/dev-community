@@ -1,5 +1,4 @@
 import bcrypt from 'bcrypt';
-import crypto from 'crypto';
 import {
   ConflictException,
   Injectable,
@@ -10,11 +9,18 @@ import { Model } from 'mongoose';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePassDto } from './dto/update-pass.dto';
-import { User } from './entities/user.entity';
+import { User, UserDocument } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+
+  private serializeUser(user: UserDocument) {
+    return {
+      ...user.toObject(),
+      _id: user._id.toString(),
+    };
+  }
 
   async create(createUserDto: CreateUserDto) {
     const user = await this.userModel
@@ -27,11 +33,10 @@ export class UsersService {
       createUserDto.password as string,
       10,
     );
-    const newUser = new this.userModel({
-      _id: crypto.randomUUID(),
-      ...createUserDto,
-    });
-    return await newUser.save();
+    const newUser = new this.userModel(createUserDto);
+    const savedUser = await newUser.save();
+
+    return this.serializeUser(savedUser);
   }
 
   async findAll() {
@@ -43,7 +48,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return user;
+    return this.serializeUser(user);
   }
 
   async findByEmail(email: string) {
@@ -51,7 +56,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return user;
+    return this.serializeUser(user);
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
