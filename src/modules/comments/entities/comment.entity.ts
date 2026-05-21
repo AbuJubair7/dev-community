@@ -24,3 +24,5 @@ export class Comment {
 }
 
 export const CommentSchema = SchemaFactory.createForClass(Comment);
+
+CommentSchema.index({ postId: 1, parentId: 1, createdAt: 1 });
