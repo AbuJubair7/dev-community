@@ -1,16 +1,15 @@
 import {
+  BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Comment } from './entities/comment.entity';
+import { Model, Types } from 'mongoose';
+import { Comment, CommentDocument } from './entities/comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { buildTree } from 'src/helpers/comments-tree';
-import crypto from 'crypto';
-import { updateReplyStatus } from 'src/helpers/update-reply-status';
 
 @Injectable()
 export class CommentsService {
@@ -18,57 +17,94 @@ export class CommentsService {
     @InjectModel(Comment.name) private commentModel: Model<Comment>,
   ) {}
 
+  private serializeComment(comment: CommentDocument) {
+    const serializedComment = comment.toObject();
+
+    return {
+      ...serializedComment,
+      _id: comment._id.toString(),
+      postId: comment.postId.toString(),
+      userId: comment.userId.toString(),
+      parentId: comment.parentId ? comment.parentId.toString() : null,
+    };
+  }
+
+  private toObjectId(id: string, fieldName: string) {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`Invalid ${fieldName}`);
+    }
+
+    return new Types.ObjectId(id);
+  }
+
   async create(createCommentDto: CreateCommentDto, userId: string) {
     const { postId, content, parentId = null } = createCommentDto;
+    const postObjectId = this.toObjectId(postId, 'post id');
+    const userObjectId = this.toObjectId(userId, 'user id');
+    const parentObjectId = parentId
+      ? this.toObjectId(parentId, 'parent comment id')
+      : null;
 
-    if (parentId) {
-      const parent = await this.commentModel.findById(parentId).exec();
+    if (parentObjectId) {
+      const parent = await this.commentModel.findById(parentObjectId).exec();
       if (!parent) throw new NotFoundException('Parent comment not found');
+
+      if (parent.postId.toString() !== postObjectId.toString()) {
+        throw new BadRequestException('Parent comment does not belong to post');
+      }
     }
 
     const comment = await this.commentModel.create({
-      _id: crypto.randomUUID(),
-      postId,
-      userId,
+      postId: postObjectId,
+      userId: userObjectId,
       content,
-      parentId,
+      parentId: parentObjectId,
     });
 
-    return comment;
+    return this.serializeComment(comment);
   }
 
   async findAllByPost(postId: string) {
+    const postObjectId = this.toObjectId(postId, 'post id');
     const all = await this.commentModel
-      .find({ postId })
+      .find({ postId: postObjectId })
       .sort({ createdAt: 1 })
-      .lean()
       .exec();
 
-    return buildTree(all);
+    return buildTree(all.map((comment) => this.serializeComment(comment)));
   }
 
   async findOne(id: string) {
-    const comment = await this.commentModel.findById(id).exec();
+    const commentObjectId = this.toObjectId(id, 'comment id');
+    const comment = await this.commentModel.findById(commentObjectId).exec();
     if (!comment) throw new NotFoundException('Comment not found');
-    return comment;
+    return this.serializeComment(comment);
   }
 
   async update(id: string, userId: string, updateCommentDto: UpdateCommentDto) {
+    const commentObjectId = this.toObjectId(id, 'comment id');
+    const userObjectId = this.toObjectId(userId, 'user id');
     const comment = await this.commentModel
-      .findOneAndUpdate({ _id: id, userId }, updateCommentDto, { new: true })
+      .findOneAndUpdate(
+        { _id: commentObjectId, userId: userObjectId },
+        updateCommentDto,
+        { new: true },
+      )
       .exec();
 
     if (!comment)
       throw new ForbiddenException('Comment not found or not yours');
-    return comment;
+    return this.serializeComment(comment);
   }
 
   async remove(id: string, userId: string) {
+    const commentObjectId = this.toObjectId(id, 'comment id');
+    const userObjectId = this.toObjectId(userId, 'user id');
     const comment = await this.commentModel
       .findOneAndUpdate(
-        { _id: id, userId },
+        { _id: commentObjectId, userId: userObjectId },
         { isDeleted: true, content: '[This comment has been deleted]' },
-        { new: true }
+        { new: true },
       )
       .exec();
 
