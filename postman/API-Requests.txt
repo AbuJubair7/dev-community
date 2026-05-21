@@ -103,9 +103,17 @@ URL Parameters: id (string)
 Headers: Authorization: Bearer <token>
 Auth Required: JWT
 
+Method: GET
+URL: /skills/user/:userId
+Controller/Function: SkillsController.findOneByUserId
+URL Parameters: userId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
 Method: PATCH
-URL: /skills
+URL: /skills/:id
 Controller/Function: SkillsController.update
+URL Parameters: id (string)
 Headers: Authorization: Bearer <token>
 Auth Required: JWT
 Request Body (JSON):
@@ -114,8 +122,9 @@ Request Body (JSON):
 }
 
 Method: DELETE
-URL: /skills
+URL: /skills/:id
 Controller/Function: SkillsController.remove
+URL Parameters: id (string)
 Headers: Authorization: Bearer <token>
 Auth Required: JWT
 
@@ -148,19 +157,29 @@ URL Parameters: id (string)
 Headers: Authorization: Bearer <token>
 Auth Required: JWT
 
+Method: GET
+URL: /experiences/user/:userId
+Controller/Function: ExperiencesController.findOneByUserId
+URL Parameters: userId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
 Method: PATCH
-URL: /experiences
+URL: /experiences/:id
 Controller/Function: ExperiencesController.update
+URL Parameters: id (string)
 Headers: Authorization: Bearer <token>
 Auth Required: JWT
 Request Body (JSON):
 {
-  "companyName": "Updated Tech Corp"
+  "companyName": "Updated Tech Corp",
+  "role": "Senior Engineer"
 }
 
 Method: DELETE
-URL: /experiences
+URL: /experiences/:id
 Controller/Function: ExperiencesController.remove
+URL Parameters: id (string)
 Headers: Authorization: Bearer <token>
 Auth Required: JWT
 
@@ -190,18 +209,88 @@ URL Parameters: id (string)
 Headers: Authorization: Bearer <token>
 Auth Required: JWT
 
+Method: GET
+URL: /posts/user/:userId
+Controller/Function: PostsController.findUserPosts
+URL Parameters: userId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
 Method: PATCH
-URL: /posts
+URL: /posts/:id
 Controller/Function: PostsController.update
+URL Parameters: id (string)
 Headers: Authorization: Bearer <token>
 Auth Required: JWT
 Request Body (JSON):
 {
-  "title": "Updated Post Title"
+  "title": "Updated Post Title",
+  "content": "Updated Post Content."
 }
 
 Method: DELETE
-URL: /posts
+URL: /posts/:id
 Controller/Function: PostsController.remove
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+7. Comments API
+-----------------------------------
+Method: POST
+URL: /comments
+Controller/Function: CommentsController.create
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "postId": "6a0ea06ffa50fb2f7b57cbb9",
+  "content": "This is a comment.",
+  "parentId": "6a0ea06ffa50fb2f7b57cbba"
+}
+
+Method: GET
+URL: /comments/post/:postId
+Controller/Function: CommentsController.findAllByPost
+URL Parameters: postId (string)
+Query Parameters:
+  - page (string, optional, e.g. "1")
+  - limit (string, optional, e.g. "3")
+  - replyLimit (string, optional, e.g. "5")
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /comments/:id/replies
+Controller/Function: CommentsController.findReplies
+URL Parameters: id (string)
+Query Parameters:
+  - page (string, optional, e.g. "1")
+  - limit (string, optional, e.g. "3")
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /comments/:id
+Controller/Function: CommentsController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: PATCH
+URL: /comments/:id
+Controller/Function: CommentsController.update
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "content": "This is an updated comment."
+}
+
+Method: DELETE
+URL: /comments/:id
+Controller/Function: CommentsController.remove
+URL Parameters: id (string)
 Headers: Authorization: Bearer <token>
 Auth Required: JWT
