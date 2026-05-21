@@ -24,7 +24,9 @@ export class PostsService {
   }
 
   async findOne(id: string) {
-    return await this.postModel.findById(id).exec();
+    const post = await this.postModel.findById(id).exec();
+    if (!post) throw new NotFoundException('Post not found');
+    return post;
   }
 
   async findOneByUserId(userId: string) {
@@ -40,7 +42,9 @@ export class PostsService {
   }
 
   async remove(postId: string, userId: string) {
-    const post = await this.postModel.findOneAndDelete({ _id: postId, userId }).exec();
+    const post = await this.postModel
+      .findOneAndDelete({ _id: postId, userId })
+      .exec();
     if (!post) throw new NotFoundException('Post not found or not yours');
     return post;
   }

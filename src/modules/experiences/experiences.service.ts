@@ -28,6 +28,7 @@ export class ExperiencesService {
 
   async findOne(id: string) {
     const exp = await this.experienceModel.findById(id).exec();
+    if (!exp) throw new NotFoundException('Experience not found');
     return exp;
   }
 
