@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -26,8 +27,22 @@ export class CommentsController {
   }
 
   @Get('post/:postId')
-  findAllByPost(@Param('postId') postId: string) {
-    return this.commentsService.findAllByPost(postId);
+  findAllByPost(
+    @Param('postId') postId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('replyLimit') replyLimit?: string,
+  ) {
+    return this.commentsService.findAllByPost(postId, page, limit, replyLimit);
+  }
+
+  @Get(':id/replies')
+  findReplies(
+    @Param('id') id: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.commentsService.findReplies(id, page, limit);
   }
 
   @Get(':id')

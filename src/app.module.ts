@@ -8,6 +8,7 @@ import { SkillsModule } from './modules/skills/skills.module';
 import { ExperiencesModule } from './modules/experiences/experiences.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { CommentsModule } from './modules/comments/comments.module';
+import { ReactsModule } from './modules/reacts/reacts.module';
 import 'dotenv/config';
 
 @Module({
@@ -19,6 +20,7 @@ import 'dotenv/config';
     ExperiencesModule,
     PostsModule,
     CommentsModule,
+    ReactsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

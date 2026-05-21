@@ -1,47 +1,79 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { Post } from './entities/post.entity';
-import { Model } from 'mongoose';
-import crypto from 'crypto';
+import { Post, PostDocument } from './entities/post.entity';
+import { Model, Types } from 'mongoose';
 
 @Injectable()
 export class PostsService {
   constructor(@InjectModel(Post.name) private postModel: Model<Post>) {}
 
+  private serializePost(post: PostDocument) {
+    const serializedPost = post.toObject();
+
+    return {
+      ...serializedPost,
+      _id: post._id.toString(),
+      userId: post.userId.toString(),
+    };
+  }
+
+  private toUserObjectId(userId: string) {
+    if (!Types.ObjectId.isValid(userId)) {
+      throw new BadRequestException('Invalid user id');
+    }
+
+    return new Types.ObjectId(userId);
+  }
+
   async create(createPostDto: CreatePostDto, userId: string) {
+    const userObjectId = this.toUserObjectId(userId);
     const createdPost = await this.postModel.create({
-      _id: crypto.randomUUID(),
       ...createPostDto,
-      userId,
+      userId: userObjectId,
     });
-    return createdPost;
+    return this.serializePost(createdPost);
   }
 
   async findAll() {
-    return await this.postModel.find().exec();
+    const posts = await this.postModel.find().exec();
+    return posts.map((post) => this.serializePost(post));
   }
 
   async findOne(id: string) {
-    return await this.postModel.findById(id).exec();
+    const post = await this.postModel.findById(id).exec();
+    if (!post) throw new NotFoundException('Post not found');
+    return this.serializePost(post);
   }
 
   async findOneByUserId(userId: string) {
-    return await this.postModel.find({ userId }).exec();
+    const userObjectId = this.toUserObjectId(userId);
+    const posts = await this.postModel.find({ userId: userObjectId }).exec();
+    return posts.map((post) => this.serializePost(post));
   }
 
   async update(postId: string, userId: string, updatePostDto: UpdatePostDto) {
+    const userObjectId = this.toUserObjectId(userId);
     const post = await this.postModel
-      .findOneAndUpdate({ _id: postId, userId }, updatePostDto, { new: true })
+      .findOneAndUpdate({ _id: postId, userId: userObjectId }, updatePostDto, {
+        new: true,
+      })
       .exec();
     if (!post) throw new NotFoundException('Post not found or not yours');
-    return post;
+    return this.serializePost(post);
   }
 
   async remove(postId: string, userId: string) {
-    const post = await this.postModel.findOneAndDelete({ _id: postId, userId }).exec();
+    const userObjectId = this.toUserObjectId(userId);
+    const post = await this.postModel
+      .findOneAndDelete({ _id: postId, userId: userObjectId })
+      .exec();
     if (!post) throw new NotFoundException('Post not found or not yours');
-    return post;
+    return this.serializePost(post);
   }
 }
