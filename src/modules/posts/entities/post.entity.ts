@@ -1,15 +1,13 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
+import { User } from '../../users/entities/user.entity';
 
 export type PostDocument = HydratedDocument<Post>;
 
 @Schema({ timestamps: true })
 export class Post {
-  @Prop({ type: String, primary: true })
-  _id!: string;
-
-  @Prop()
-  userId!: string;
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: User.name, required: true })
+  userId!: Types.ObjectId | User;
 
   @Prop({ required: true })
   title!: string;
