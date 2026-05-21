@@ -42,7 +42,11 @@ export class SkillsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSkillDto: UpdateSkillDto, @Req() req: Request) {
+  update(
+    @Param('id') id: string,
+    @Body() updateSkillDto: UpdateSkillDto,
+    @Req() req: Request,
+  ) {
     return this.skillsService.update(id, (req.user as any).id, updateSkillDto);
   }
 
