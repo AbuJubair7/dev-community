@@ -9,10 +9,12 @@ import { Model, Types } from 'mongoose';
 import { Comment, CommentDocument } from './entities/comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { buildTree } from 'src/helpers/comments-tree';
 
 @Injectable()
 export class CommentsService {
+  private readonly defaultPageSize = 3;
+  private readonly maxPageSize = 50;
+
   constructor(
     @InjectModel(Comment.name) private commentModel: Model<Comment>,
   ) {}
@@ -35,6 +37,63 @@ export class CommentsService {
     }
 
     return new Types.ObjectId(id);
+  }
+
+  private getPagination(page: string | undefined, limit: string | undefined) {
+    const pageNumber = Number(page ?? 1);
+    const limitNumber = Number(limit ?? this.defaultPageSize);
+
+    if (!Number.isInteger(pageNumber) || pageNumber < 1) {
+      throw new BadRequestException('page must be a positive integer');
+    }
+
+    if (!Number.isInteger(limitNumber) || limitNumber < 1) {
+      throw new BadRequestException('limit must be a positive integer');
+    }
+
+    const pageSize = Math.min(limitNumber, this.maxPageSize);
+
+    return {
+      page: pageNumber,
+      limit: pageSize,
+      skip: (pageNumber - 1) * pageSize,
+      meta: (total: number) => {
+        const totalPages = Math.ceil(total / pageSize);
+        const hasNextPage = pageNumber < totalPages;
+
+        return {
+          page: pageNumber,
+          limit: pageSize,
+          total,
+          totalPages,
+          hasNextPage,
+          nextPage: hasNextPage ? pageNumber + 1 : null,
+        };
+      },
+    };
+  }
+
+  private async findRepliesPage(
+    parentId: Types.ObjectId,
+    page?: string,
+    limit?: string,
+  ) {
+    const pagination = this.getPagination(page, limit);
+
+    const [replies, total] = await Promise.all([
+      this.commentModel
+        .find({ parentId })
+        .sort({ createdAt: 1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit)
+        .exec(),
+      this.commentModel.countDocuments({ parentId }).exec(),
+    ]);
+
+    return {
+      data: replies.map((reply) => this.serializeComment(reply)),
+      pagination: pagination.meta(total),
+    };
   }
 
   async create(createCommentDto: CreateCommentDto, userId: string) {
@@ -64,14 +123,55 @@ export class CommentsService {
     return this.serializeComment(comment);
   }
 
-  async findAllByPost(postId: string) {
+  async findAllByPost(
+    postId: string,
+    page?: string,
+    limit?: string,
+    replyLimit?: string,
+  ) {
     const postObjectId = this.toObjectId(postId, 'post id');
-    const all = await this.commentModel
-      .find({ postId: postObjectId })
-      .sort({ createdAt: 1 })
-      .exec();
+    const pagination = this.getPagination(page, limit);
 
-    return buildTree(all.map((comment) => this.serializeComment(comment)));
+    const [comments, total] = await Promise.all([
+      this.commentModel
+        .find({ postId: postObjectId, parentId: null })
+        .sort({ createdAt: 1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit)
+        .exec(),
+      this.commentModel
+        .countDocuments({ postId: postObjectId, parentId: null })
+        .exec(),
+    ]);
+
+    const data = await Promise.all(
+      comments.map(async (comment) => {
+        const replies = await this.findRepliesPage(
+          comment._id,
+          undefined,
+          replyLimit,
+        );
+
+        return {
+          ...this.serializeComment(comment),
+          replies: replies.data,
+          repliesPagination: replies.pagination,
+        };
+      }),
+    );
+
+    return {
+      data,
+      pagination: pagination.meta(total),
+    };
+  }
+
+  async findReplies(id: string, page?: string, limit?: string) {
+    const commentObjectId = this.toObjectId(id, 'comment id');
+    const parent = await this.commentModel.findById(commentObjectId).exec();
+    if (!parent) throw new NotFoundException('Comment not found');
+
+    return this.findRepliesPage(commentObjectId, page, limit);
   }
 
   async findOne(id: string) {
