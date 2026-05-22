@@ -1,13 +1,10 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post, PostDocument } from './entities/post.entity';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
+import { toObjectId } from '../../helpers/to-object-id';
 
 @Injectable()
 export class PostsService {
@@ -23,16 +20,9 @@ export class PostsService {
     };
   }
 
-  private toUserObjectId(userId: string) {
-    if (!Types.ObjectId.isValid(userId)) {
-      throw new BadRequestException('Invalid user id');
-    }
-
-    return new Types.ObjectId(userId);
-  }
 
   async create(createPostDto: CreatePostDto, userId: string) {
-    const userObjectId = this.toUserObjectId(userId);
+    const userObjectId = toObjectId(userId, 'user id');
     const createdPost = await this.postModel.create({
       ...createPostDto,
       userId: userObjectId,
@@ -52,13 +42,13 @@ export class PostsService {
   }
 
   async findOneByUserId(userId: string) {
-    const userObjectId = this.toUserObjectId(userId);
+    const userObjectId = toObjectId(userId, 'user id');
     const posts = await this.postModel.find({ userId: userObjectId }).exec();
     return posts.map((post) => this.serializePost(post));
   }
 
   async update(postId: string, userId: string, updatePostDto: UpdatePostDto) {
-    const userObjectId = this.toUserObjectId(userId);
+    const userObjectId = toObjectId(userId, 'user id');
     const post = await this.postModel
       .findOneAndUpdate({ _id: postId, userId: userObjectId }, updatePostDto, {
         new: true,
@@ -69,7 +59,7 @@ export class PostsService {
   }
 
   async remove(postId: string, userId: string) {
-    const userObjectId = this.toUserObjectId(userId);
+    const userObjectId = toObjectId(userId, 'user id');
     const post = await this.postModel
       .findOneAndDelete({ _id: postId, userId: userObjectId })
       .exec();

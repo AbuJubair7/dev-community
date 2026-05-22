@@ -1,13 +1,10 @@
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { CreateExperienceDto } from './dto/create-experience.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
 import { Experience, ExperienceDocument } from './entities/experience.entity';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { toObjectId } from '../../helpers/to-object-id';
 
 @Injectable()
 export class ExperiencesService {
@@ -25,16 +22,9 @@ export class ExperiencesService {
     };
   }
 
-  private toUserObjectId(userId: string) {
-    if (!Types.ObjectId.isValid(userId)) {
-      throw new BadRequestException('Invalid user id');
-    }
-
-    return new Types.ObjectId(userId);
-  }
 
   async create(createExperienceDto: CreateExperienceDto, id: string) {
-    const userId = this.toUserObjectId(id);
+    const userId = toObjectId(id, 'user id');
     const exp = await this.experienceModel.create({
       ...createExperienceDto,
       userId,
@@ -43,7 +33,7 @@ export class ExperiencesService {
   }
 
   async findAll(id: string) {
-    const userId = this.toUserObjectId(id);
+    const userId = toObjectId(id, 'user id');
     const experiences = await this.experienceModel.find({ userId }).exec();
     return experiences.map((experience) =>
       this.serializeExperience(experience),
@@ -57,7 +47,7 @@ export class ExperiencesService {
   }
 
   async findOneByUserId(userId: string) {
-    const userObjectId = this.toUserObjectId(userId);
+    const userObjectId = toObjectId(userId, 'user id');
     const experiences = await this.experienceModel
       .find({ userId: userObjectId })
       .exec();
@@ -71,7 +61,7 @@ export class ExperiencesService {
     userId: string,
     updateExperienceDto: UpdateExperienceDto,
   ) {
-    const userObjectId = this.toUserObjectId(userId);
+    const userObjectId = toObjectId(userId, 'user id');
     const exp = await this.experienceModel
       .findOneAndUpdate(
         { _id: expId, userId: userObjectId },
@@ -86,7 +76,7 @@ export class ExperiencesService {
   }
 
   async remove(expId: string, userId: string) {
-    const userObjectId = this.toUserObjectId(userId);
+    const userObjectId = toObjectId(userId, 'user id');
     const exp = await this.experienceModel
       .findOneAndDelete({ _id: expId, userId: userObjectId })
       .exec();

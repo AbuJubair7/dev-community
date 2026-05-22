@@ -1,10 +1,6 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { CreatePostReactDto } from './dto/create-post-react.dto';
 import { UpdatePostReactDto } from './dto/update-post-react.dto.';
 import { CreateCommentReactDto } from './dto/create-comment-react.dto';
@@ -14,6 +10,7 @@ import {
   CommentReact,
   CommentReactDocument,
 } from './entities/comment-react.entity';
+import { toObjectId } from '../../helpers/to-object-id';
 
 @Injectable()
 export class ReactsService {
@@ -22,13 +19,6 @@ export class ReactsService {
     @InjectModel(CommentReact.name)
     private commentReactModel: Model<CommentReact>,
   ) {}
-
-  private toObjectId(id: string, label: string): Types.ObjectId {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException(`Invalid ${label}`);
-    }
-    return new Types.ObjectId(id);
-  }
 
   private serializePostReact(react: PostReactDocument) {
     const obj = react.toObject();
@@ -53,8 +43,8 @@ export class ReactsService {
   // ─── Post Reacts ────
 
   async createPostReact(createPostReactDto: CreatePostReactDto) {
-    const userId = this.toObjectId(createPostReactDto.userId, 'user id');
-    const postId = this.toObjectId(createPostReactDto.postId, 'post id');
+    const userId = toObjectId(createPostReactDto.userId, 'user id');
+    const postId = toObjectId(createPostReactDto.postId, 'post id');
 
     const newReact = await this.postReactModel.create({
       ...createPostReactDto,
@@ -65,7 +55,7 @@ export class ReactsService {
   }
 
   async findAllPostReacts(postId: string) {
-    const postObjectId = this.toObjectId(postId, 'post id');
+    const postObjectId = toObjectId(postId, 'post id');
     const reacts = await this.postReactModel
       .find({ postId: postObjectId })
       .exec();
@@ -83,7 +73,7 @@ export class ReactsService {
     userId: string,
     updatePostReactDto: UpdatePostReactDto,
   ) {
-    const userObjectId = this.toObjectId(userId, 'user id');
+    const userObjectId = toObjectId(userId, 'user id');
     const react = await this.postReactModel
       .findOneAndUpdate({ _id: id, userId: userObjectId }, updatePostReactDto, {
         new: true,
@@ -95,7 +85,7 @@ export class ReactsService {
   }
 
   async removePostReact(id: string, userId: string) {
-    const userObjectId = this.toObjectId(userId, 'user id');
+    const userObjectId = toObjectId(userId, 'user id');
     const react = await this.postReactModel
       .findOneAndDelete({ _id: id, userId: userObjectId })
       .exec();
@@ -107,11 +97,8 @@ export class ReactsService {
   // ─── Comment Reacts ────
 
   async createCommentReact(createCommentReactDto: CreateCommentReactDto) {
-    const userId = this.toObjectId(createCommentReactDto.userId, 'user id');
-    const commentId = this.toObjectId(
-      createCommentReactDto.commentId,
-      'comment id',
-    );
+    const userId = toObjectId(createCommentReactDto.userId, 'user id');
+    const commentId = toObjectId(createCommentReactDto.commentId, 'comment id');
 
     const newReact = await this.commentReactModel.create({
       ...createCommentReactDto,
@@ -122,7 +109,7 @@ export class ReactsService {
   }
 
   async findAllCommentReacts(commentId: string) {
-    const commentObjectId = this.toObjectId(commentId, 'comment id');
+    const commentObjectId = toObjectId(commentId, 'comment id');
     const reacts = await this.commentReactModel
       .find({ commentId: commentObjectId })
       .exec();
@@ -140,7 +127,7 @@ export class ReactsService {
     userId: string,
     updateCommentReactDto: UpdateCommentReactDto,
   ) {
-    const userObjectId = this.toObjectId(userId, 'user id');
+    const userObjectId = toObjectId(userId, 'user id');
     const react = await this.commentReactModel
       .findOneAndUpdate(
         { _id: id, userId: userObjectId },
@@ -154,7 +141,7 @@ export class ReactsService {
   }
 
   async removeCommentReact(id: string, userId: string) {
-    const userObjectId = this.toObjectId(userId, 'user id');
+    const userObjectId = toObjectId(userId, 'user id');
     const react = await this.commentReactModel
       .findOneAndDelete({ _id: id, userId: userObjectId })
       .exec();
