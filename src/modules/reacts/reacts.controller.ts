@@ -8,8 +8,8 @@ import {
   Delete,
 } from '@nestjs/common';
 import { ReactsService } from './reacts.service';
-import { CreateReactDto } from './dto/create-react.dto';
-import { UpdateReactDto } from './dto/update-react.dto';
+import { CreateReactDto } from './dto/create-post-react.dto';
+import { UpdateReactDto } from './dto/update-post-react.dto.';
 
 @Controller('reacts')
 export class ReactsController {

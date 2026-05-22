@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { CreateReactDto } from './dto/create-react.dto';
-import { UpdateReactDto } from './dto/update-react.dto';
+import { CreateReactDto } from './dto/create-post-react.dto';
+import { UpdateReactDto } from './dto/update-post-react.dto.';
 
 @Injectable()
 export class ReactsService {
