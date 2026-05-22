@@ -32,7 +32,6 @@ export class CommentsService {
     };
   }
 
-
   private getPagination(page: string | undefined, limit: string | undefined) {
     const pageNumber = Number(page ?? 1);
     const limitNumber = Number(limit ?? this.defaultPageSize);

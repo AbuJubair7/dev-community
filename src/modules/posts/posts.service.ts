@@ -20,7 +20,6 @@ export class PostsService {
     };
   }
 
-
   async create(createPostDto: CreatePostDto, userId: string) {
     const userObjectId = toObjectId(userId, 'user id');
     const createdPost = await this.postModel.create({

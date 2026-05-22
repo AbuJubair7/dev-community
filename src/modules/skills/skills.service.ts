@@ -20,7 +20,6 @@ export class SkillsService {
     };
   }
 
-
   async create(createSkillDto: CreateSkillDto, id: string) {
     const userId = toObjectId(id, 'user id');
     const skill = await this.skillModel.create({
