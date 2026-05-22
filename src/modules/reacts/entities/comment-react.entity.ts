@@ -1,35 +1,22 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 import { User } from '../../users/entities/user.entity';
-import { Post } from '../../posts/entities/post.entity';
 import { Comment } from '../../comments/entities/comment.entity';
+import { ReactState } from '../enums/react-state.enum';
 
-export type ReactDocument = HydratedDocument<React>;
-
-export enum ReactState {
-  LIKE = 'LIKE',
-  DISLIKE = 'DISLIKE',
-  NEUTRAL = 'NEUTRAL',
-}
+export type CommentReactDocument = HydratedDocument<CommentReact>;
 
 @Schema({ timestamps: true })
-export class React {
+export class CommentReact {
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: User.name, required: true })
   userId!: Types.ObjectId | User;
 
   @Prop({
     type: MongooseSchema.Types.ObjectId,
-    ref: Post.name,
-    required: false,
-  })
-  postId?: Types.ObjectId | Post;
-
-  @Prop({
-    type: MongooseSchema.Types.ObjectId,
     ref: Comment.name,
-    required: false,
+    required: true,
   })
-  commentId?: Types.ObjectId | Comment;
+  commentId!: Types.ObjectId | Comment;
 
   @Prop({
     type: String,
@@ -40,4 +27,4 @@ export class React {
   state!: ReactState;
 }
 
-export const ReactSchema = SchemaFactory.createForClass(React);
+export const CommentReactSchema = SchemaFactory.createForClass(CommentReact);
