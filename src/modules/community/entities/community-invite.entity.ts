@@ -1,4 +1,4 @@
-import { Prop } from '@nestjs/mongoose';
+import { Prop, SchemaFactory } from '@nestjs/mongoose';
 import { Schema } from '@nestjs/mongoose';
 import { HydratedDocument, Types, Schema as MongooseSchema } from 'mongoose';
 import { User } from 'src/modules/users/entities/user.entity';
@@ -20,3 +20,6 @@ export class CommunityInvite {
   @Prop({ enum: InviteStatus, default: InviteStatus.PENDING })
   status!: InviteStatus;
 }
+
+export const CommunityInviteSchema =
+  SchemaFactory.createForClass(CommunityInvite);
