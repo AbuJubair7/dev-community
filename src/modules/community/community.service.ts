@@ -376,4 +376,83 @@ export class CommunityService {
 
     return { message: 'Member removed successfully' };
   }
+
+  // ─── Query Helpers ───
+
+  async getMembers(communityId: string) {
+    const communityObjectId = toObjectId(communityId, 'community id');
+    const members = await this.communityMemberModel
+      .find({ communityId: communityObjectId })
+      .exec();
+    return members.map((m) => this.serializeCommunityMember(m));
+  }
+
+  async getRequests(communityId: string) {
+    const communityObjectId = toObjectId(communityId, 'community id');
+    return this.communityRequestModel
+      .find({ communityId: communityObjectId, status: InviteStatus.PENDING })
+      .exec();
+  }
+
+  async getMyInvites(userId: string) {
+    const userObjectId = toObjectId(userId, 'user id');
+    return this.communityInviteModel
+      .find({ inviteeId: userObjectId, status: InviteStatus.PENDING })
+      .exec();
+  }
+
+  async getMyRole(communityId: string, userId: string) {
+    const communityObjectId = toObjectId(communityId, 'community id');
+    const userObjectId = toObjectId(userId, 'user id');
+
+    // 1. Check membership
+    const member = await this.communityMemberModel
+      .findOne({ communityId: communityObjectId, userId: userObjectId })
+      .exec();
+    if (member) {
+      return { role: member.role, status: 'member' };
+    }
+
+    // 2. Check pending request
+    const pendingRequest = await this.communityRequestModel
+      .findOne({
+        communityId: communityObjectId,
+        userId: userObjectId,
+        status: InviteStatus.PENDING,
+      })
+      .exec();
+    if (pendingRequest) {
+      return { role: null, status: 'requested' };
+    }
+
+    // 3. Check pending invite
+    const pendingInvite = await this.communityInviteModel
+      .findOne({
+        communityId,
+        inviteeId: userObjectId,
+        status: InviteStatus.PENDING,
+      })
+      .exec();
+    if (pendingInvite) {
+      return {
+        role: null,
+        status: 'invited',
+        inviteId: pendingInvite._id.toString(),
+      };
+    }
+
+    return { role: null, status: 'none' };
+  }
+
+  async getMyCommunities(userId: string) {
+    const userObjectId = toObjectId(userId, 'user id');
+    const memberships = await this.communityMemberModel
+      .find({ userId: userObjectId })
+      .exec();
+    const communityIds = memberships.map((m) => m.communityId);
+    const communities = await this.communityModel
+      .find({ _id: { $in: communityIds } })
+      .exec();
+    return communities.map((c) => this.serializeCommunity(c));
+  }
 }

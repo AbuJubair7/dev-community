@@ -32,6 +32,11 @@ export class CommunityController {
     return this.communityService.findAll();
   }
 
+  @Get('member/my')
+  getMyCommunities(@Req() req: any) {
+    return this.communityService.getMyCommunities(req.user.id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.communityService.findOne(id);
@@ -117,5 +122,29 @@ export class CommunityController {
     @Req() req: any,
   ) {
     return this.communityService.removeMember(communityId, userId, req.user.id);
+  }
+
+  // ─── Queries ───
+
+  @Get('invites/my')
+  getMyInvites(@Req() req: any) {
+    return this.communityService.getMyInvites(req.user.id);
+  }
+
+  @Get(':id/members')
+  getMembers(@Param('id') communityId: string) {
+    return this.communityService.getMembers(communityId);
+  }
+
+  @UseGuards(RoleGuard)
+  @Roles(Role.ADMIN, Role.MODERATOR)
+  @Get(':id/requests')
+  getRequests(@Param('id') communityId: string) {
+    return this.communityService.getRequests(communityId);
+  }
+
+  @Get(':id/my-role')
+  getMyRole(@Param('id') communityId: string, @Req() req: any) {
+    return this.communityService.getMyRole(communityId, req.user.id);
   }
 }

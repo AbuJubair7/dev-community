@@ -1,14 +1,22 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post, PostDocument } from './entities/post.entity';
-import { Model } from 'mongoose';
+import { Connection, Model } from 'mongoose';
 import { toObjectId } from '../../helpers/to-object-id';
+import { Role } from '../community/enums/role.enum';
 
 @Injectable()
 export class PostsService {
-  constructor(@InjectModel(Post.name) private postModel: Model<Post>) {}
+  constructor(
+    @InjectModel(Post.name) private postModel: Model<Post>,
+    @InjectConnection() private connection: Connection,
+  ) {}
 
   private serializePost(post: PostDocument) {
     const serializedPost = post.toObject();
@@ -17,14 +25,36 @@ export class PostsService {
       ...serializedPost,
       _id: post._id.toString(),
       userId: post.userId.toString(),
+      communityId: post.communityId ? post.communityId.toString() : undefined,
     };
   }
 
   async create(createPostDto: CreatePostDto, userId: string) {
     const userObjectId = toObjectId(userId, 'user id');
+    const communityObjectId = toObjectId(
+      createPostDto.communityId,
+      'community id',
+    );
+
+    // Verify user is a member of the community
+    const communityMemberModel = this.connection.model('CommunityMember');
+    const member = await communityMemberModel
+      .findOne({
+        communityId: communityObjectId,
+        userId: userObjectId,
+      })
+      .exec();
+
+    if (!member) {
+      throw new ForbiddenException(
+        'You must be a member of the community to create a post in it',
+      );
+    }
+
     const createdPost = await this.postModel.create({
       ...createPostDto,
       userId: userObjectId,
+      communityId: communityObjectId,
     });
     return this.serializePost(createdPost);
   }
@@ -59,10 +89,37 @@ export class PostsService {
 
   async remove(postId: string, userId: string) {
     const userObjectId = toObjectId(userId, 'user id');
-    const post = await this.postModel
-      .findOneAndDelete({ _id: postId, userId: userObjectId })
-      .exec();
-    if (!post) throw new NotFoundException('Post not found or not yours');
+    const post = await this.postModel.findById(postId).exec();
+    if (!post) throw new NotFoundException('Post not found');
+
+    const isOwner = post.userId.toString() === userObjectId.toString();
+    let isAllowed = isOwner;
+
+    if (!isAllowed && post.communityId) {
+      // Check if user is admin or moderator in the community the post belongs to
+      const communityMemberModel = this.connection.model('CommunityMember');
+      const member = await communityMemberModel
+        .findOne({
+          communityId: post.communityId,
+          userId: userObjectId,
+        })
+        .exec();
+
+      if (
+        member &&
+        (member.role === Role.ADMIN || member.role === Role.MODERATOR)
+      ) {
+        isAllowed = true;
+      }
+    }
+
+    if (!isAllowed) {
+      throw new ForbiddenException(
+        'You do not have permission to delete this post',
+      );
+    }
+
+    await this.postModel.findByIdAndDelete(postId).exec();
     return this.serializePost(post);
   }
 }
