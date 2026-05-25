@@ -482,6 +482,257 @@
         "responses": { "200": { "description": "" } },
         "tags": ["Comments"]
       }
+    },
+    "/reacts/post": {
+      "post": {
+        "operationId": "ReactsController_createPostReact",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePostReactDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Reacts"]
+      },
+      "get": {
+        "operationId": "ReactsController_findAllPostReacts",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Reacts"]
+      },
+      "patch": {
+        "operationId": "ReactsController_updatePostReact",
+        "parameters": [
+          {
+            "name": "postId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdatePostReactDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Reacts"]
+      }
+    },
+    "/reacts/post/{id}": {
+      "get": {
+        "operationId": "ReactsController_findOnePostReact",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Reacts"]
+      },
+      "delete": {
+        "operationId": "ReactsController_removePostReact",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Reacts"]
+      }
+    },
+    "/reacts/comment": {
+      "post": {
+        "operationId": "ReactsController_createCommentReact",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateCommentReactDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Reacts"]
+      },
+      "get": {
+        "operationId": "ReactsController_findAllCommentReacts",
+        "parameters": [
+          {
+            "name": "commentId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Reacts"]
+      },
+      "patch": {
+        "operationId": "ReactsController_updateCommentReact",
+        "parameters": [
+          {
+            "name": "commentId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateCommentReactDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Reacts"]
+      }
+    },
+    "/reacts/comment/{id}": {
+      "get": {
+        "operationId": "ReactsController_findOneCommentReact",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Reacts"]
+      },
+      "delete": {
+        "operationId": "ReactsController_removeCommentReact",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "query",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Reacts"]
+      }
+    },
+    "/community": {
+      "post": {
+        "operationId": "CommunityController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateCommunityDto" }
+            }
+          }
+        },
+        "responses": { "201": { "description": "" } },
+        "tags": ["Community"]
+      },
+      "get": {
+        "operationId": "CommunityController_findAll",
+        "parameters": [],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Community"]
+      }
+    },
+    "/community/{id}": {
+      "get": {
+        "operationId": "CommunityController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Community"]
+      },
+      "patch": {
+        "operationId": "CommunityController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateCommunityDto" }
+            }
+          }
+        },
+        "responses": { "200": { "description": "" } },
+        "tags": ["Community"]
+      },
+      "delete": {
+        "operationId": "CommunityController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": { "200": { "description": "" } },
+        "tags": ["Community"]
+      }
     }
   },
   "info": {
@@ -508,7 +759,13 @@
       "CreatePostDto": { "type": "object", "properties": {} },
       "UpdatePostDto": { "type": "object", "properties": {} },
       "CreateCommentDto": { "type": "object", "properties": {} },
-      "UpdateCommentDto": { "type": "object", "properties": {} }
+      "UpdateCommentDto": { "type": "object", "properties": {} },
+      "CreatePostReactDto": { "type": "object", "properties": {} },
+      "UpdatePostReactDto": { "type": "object", "properties": {} },
+      "CreateCommentReactDto": { "type": "object", "properties": {} },
+      "UpdateCommentReactDto": { "type": "object", "properties": {} },
+      "CreateCommunityDto": { "type": "object", "properties": {} },
+      "UpdateCommunityDto": { "type": "object", "properties": {} }
     }
   }
 }

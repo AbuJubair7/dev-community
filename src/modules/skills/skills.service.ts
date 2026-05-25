@@ -1,13 +1,10 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Model } from 'mongoose';
 import { Skill, SkillDocument } from './entities/skill.entity';
+import { toObjectId } from '../../helpers/to-object-id';
 
 @Injectable()
 export class SkillsService {
@@ -23,16 +20,8 @@ export class SkillsService {
     };
   }
 
-  private toUserObjectId(userId: string) {
-    if (!Types.ObjectId.isValid(userId)) {
-      throw new BadRequestException('Invalid user id');
-    }
-
-    return new Types.ObjectId(userId);
-  }
-
   async create(createSkillDto: CreateSkillDto, id: string) {
-    const userId = this.toUserObjectId(id);
+    const userId = toObjectId(id, 'user id');
     const skill = await this.skillModel.create({
       ...createSkillDto,
       userId,
@@ -41,7 +30,7 @@ export class SkillsService {
   }
 
   async findAll(id: string) {
-    const userId = this.toUserObjectId(id);
+    const userId = toObjectId(id, 'user id');
     const skills = await this.skillModel.find({ userId }).exec();
     return skills.map((skill) => this.serializeSkill(skill));
   }
@@ -53,7 +42,7 @@ export class SkillsService {
   }
 
   async findOneByUserId(userId: string) {
-    const userObjectId = this.toUserObjectId(userId);
+    const userObjectId = toObjectId(userId, 'user id');
     const skills = await this.skillModel.find({ userId: userObjectId }).exec();
     return skills.map((skill) => this.serializeSkill(skill));
   }
@@ -63,7 +52,7 @@ export class SkillsService {
     userId: string,
     updateSkillDto: UpdateSkillDto,
   ) {
-    const userObjectId = this.toUserObjectId(userId);
+    const userObjectId = toObjectId(userId, 'user id');
     const skill = await this.skillModel
       .findOneAndUpdate(
         { _id: skillId, userId: userObjectId },
@@ -76,7 +65,7 @@ export class SkillsService {
   }
 
   async remove(skillId: string, userId: string) {
-    const userObjectId = this.toUserObjectId(userId);
+    const userObjectId = toObjectId(userId, 'user id');
     const skill = await this.skillModel
       .findOneAndDelete({ _id: skillId, userId: userObjectId })
       .exec();
