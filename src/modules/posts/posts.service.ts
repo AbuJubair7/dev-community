@@ -62,16 +62,20 @@ export class PostsService {
   async findAll(userId: string) {
     const userObjectId = toObjectId(userId, 'user id');
     const communityMemberModel = this.connection.model('CommunityMember');
-    const memberships = await communityMemberModel.find({ userId: userObjectId }).exec();
+    const memberships = await communityMemberModel
+      .find({ userId: userObjectId })
+      .exec();
     const joinedCommunityIds = memberships.map((m) => m.communityId);
 
-    const posts = await this.postModel.find({
-      $or: [
-        { communityId: { $in: joinedCommunityIds } },
-        { communityId: { $exists: false } },
-        { communityId: null },
-      ],
-    }).exec();
+    const posts = await this.postModel
+      .find({
+        $or: [
+          { communityId: { $in: joinedCommunityIds } },
+          { communityId: { $exists: false } },
+          { communityId: null },
+        ],
+      })
+      .exec();
 
     return posts.map((post) => this.serializePost(post));
   }

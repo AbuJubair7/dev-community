@@ -9,7 +9,11 @@ export type CommunityInviteDocument = HydratedDocument<CommunityInvite>;
 
 @Schema({ timestamps: true })
 export class CommunityInvite {
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: Community.name, required: true })
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: Community.name,
+    required: true,
+  })
   communityId!: Types.ObjectId | Community;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: User.name, required: true })
