@@ -11,6 +11,7 @@ import {
   CommentReactDocument,
 } from './entities/comment-react.entity';
 import { toObjectId } from '../../helpers/to-object-id';
+import { ReactState } from './enums/react-state.enum';
 
 @Injectable()
 export class ReactsService {
@@ -59,21 +60,25 @@ export class ReactsService {
         return this.serializePostReact(existingReact);
       }
     }
-
     const newReact = await this.postReactModel.create({
       ...createPostReactDto,
       userId,
       postId,
     });
+
     return this.serializePostReact(newReact);
   }
 
+  // return count of reacts for each state
   async findAllPostReacts(postId: string) {
     const postObjectId = toObjectId(postId, 'post id');
-    const reacts = await this.postReactModel
-      .find({ postId: postObjectId })
+    const likeCount = await this.postReactModel
+      .countDocuments({ postId: postObjectId, state: ReactState.LIKE })
       .exec();
-    return reacts.map((r) => this.serializePostReact(r));
+    const dislikeCount = await this.postReactModel
+      .countDocuments({ postId: postObjectId, state: ReactState.DISLIKE })
+      .exec();
+    return { likeCount, dislikeCount };
   }
 
   async findOnePostReact(id: string) {
@@ -83,15 +88,20 @@ export class ReactsService {
   }
 
   async updatePostReact(
-    id: string,
+    postId: string,
     userId: string,
     updatePostReactDto: UpdatePostReactDto,
   ) {
+    const postObjectId = toObjectId(postId, 'post id');
     const userObjectId = toObjectId(userId, 'user id');
     const react = await this.postReactModel
-      .findOneAndUpdate({ _id: id, userId: userObjectId }, updatePostReactDto, {
-        new: true,
-      })
+      .findOneAndUpdate(
+        { postId: postObjectId, userId: userObjectId },
+        updatePostReactDto,
+        {
+          new: true,
+        },
+      )
       .exec();
     if (!react)
       throw new NotFoundException('Post react not found or not yours');
@@ -136,12 +146,16 @@ export class ReactsService {
     return this.serializeCommentReact(newReact);
   }
 
+  // return count of reacts for each state
   async findAllCommentReacts(commentId: string) {
     const commentObjectId = toObjectId(commentId, 'comment id');
-    const reacts = await this.commentReactModel
-      .find({ commentId: commentObjectId })
+    const likeCount = await this.commentReactModel
+      .countDocuments({ commentId: commentObjectId, state: ReactState.LIKE })
       .exec();
-    return reacts.map((r) => this.serializeCommentReact(r));
+    const dislikeCount = await this.commentReactModel
+      .countDocuments({ commentId: commentObjectId, state: ReactState.DISLIKE })
+      .exec();
+    return { likeCount, dislikeCount };
   }
 
   async findOneCommentReact(id: string) {
@@ -151,14 +165,15 @@ export class ReactsService {
   }
 
   async updateCommentReact(
-    id: string,
+    commentId: string,
     userId: string,
     updateCommentReactDto: UpdateCommentReactDto,
   ) {
+    const commentObjectId = toObjectId(commentId, 'comment id');
     const userObjectId = toObjectId(userId, 'user id');
     const react = await this.commentReactModel
       .findOneAndUpdate(
-        { _id: id, userId: userObjectId },
+        { commentId: commentObjectId, userId: userObjectId },
         updateCommentReactDto,
         { new: true },
       )

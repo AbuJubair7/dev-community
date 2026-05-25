@@ -12,7 +12,6 @@ export class PostReact {
     type: MongooseSchema.Types.ObjectId,
     ref: User.name,
     required: true,
-    unique: true,
   })
   userId!: Types.ObjectId | User;
 
@@ -20,7 +19,6 @@ export class PostReact {
     type: MongooseSchema.Types.ObjectId,
     ref: Post.name,
     required: true,
-    unique: true,
   })
   postId!: Types.ObjectId | Post;
 

@@ -35,13 +35,17 @@ export class ReactsController {
     return this.reactsService.findOnePostReact(id);
   }
 
-  @Patch('post/:id')
+  @Patch('post')
   updatePostReact(
-    @Param('id') id: string,
+    @Query('postId') postId: string,
     @Query('userId') userId: string,
     @Body() updatePostReactDto: UpdatePostReactDto,
   ) {
-    return this.reactsService.updatePostReact(id, userId, updatePostReactDto);
+    return this.reactsService.updatePostReact(
+      postId,
+      userId,
+      updatePostReactDto,
+    );
   }
 
   @Delete('post/:id')
@@ -66,14 +70,14 @@ export class ReactsController {
     return this.reactsService.findOneCommentReact(id);
   }
 
-  @Patch('comment/:id')
+  @Patch('comment')
   updateCommentReact(
-    @Param('id') id: string,
+    @Query('commentId') commentId: string,
     @Query('userId') userId: string,
     @Body() updateCommentReactDto: UpdateCommentReactDto,
   ) {
     return this.reactsService.updateCommentReact(
-      id,
+      commentId,
       userId,
       updateCommentReactDto,
     );

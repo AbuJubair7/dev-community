@@ -12,7 +12,6 @@ export class CommentReact {
     type: MongooseSchema.Types.ObjectId,
     ref: User.name,
     required: true,
-    unique: true,
   })
   userId!: Types.ObjectId | User;
 
@@ -20,7 +19,6 @@ export class CommentReact {
     type: MongooseSchema.Types.ObjectId,
     ref: Comment.name,
     required: true,
-    unique: true,
   })
   commentId!: Types.ObjectId | Comment;
 
