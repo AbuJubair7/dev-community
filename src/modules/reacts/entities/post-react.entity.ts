@@ -8,10 +8,20 @@ export type PostReactDocument = HydratedDocument<PostReact>;
 
 @Schema({ timestamps: true })
 export class PostReact {
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: User.name, required: true })
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: User.name,
+    required: true,
+    unique: true,
+  })
   userId!: Types.ObjectId | User;
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: Post.name, required: true })
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: Post.name,
+    required: true,
+    unique: true,
+  })
   postId!: Types.ObjectId | Post;
 
   @Prop({

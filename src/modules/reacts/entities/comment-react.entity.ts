@@ -8,13 +8,19 @@ export type CommentReactDocument = HydratedDocument<CommentReact>;
 
 @Schema({ timestamps: true })
 export class CommentReact {
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: User.name, required: true })
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: User.name,
+    required: true,
+    unique: true,
+  })
   userId!: Types.ObjectId | User;
 
   @Prop({
     type: MongooseSchema.Types.ObjectId,
     ref: Comment.name,
     required: true,
+    unique: true,
   })
   commentId!: Types.ObjectId | Comment;
 

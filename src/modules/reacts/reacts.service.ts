@@ -46,6 +46,20 @@ export class ReactsService {
     const userId = toObjectId(createPostReactDto.userId, 'user id');
     const postId = toObjectId(createPostReactDto.postId, 'post id');
 
+    const existingReact = await this.postReactModel
+      .findOne({ userId, postId })
+      .exec();
+
+    if (existingReact) {
+      if (existingReact.state !== createPostReactDto.state) {
+        existingReact.state = createPostReactDto.state;
+        await existingReact.save();
+        return this.serializePostReact(existingReact);
+      } else {
+        return this.serializePostReact(existingReact);
+      }
+    }
+
     const newReact = await this.postReactModel.create({
       ...createPostReactDto,
       userId,
@@ -99,6 +113,20 @@ export class ReactsService {
   async createCommentReact(createCommentReactDto: CreateCommentReactDto) {
     const userId = toObjectId(createCommentReactDto.userId, 'user id');
     const commentId = toObjectId(createCommentReactDto.commentId, 'comment id');
+
+    const existingReact = await this.commentReactModel
+      .findOne({ userId, commentId })
+      .exec();
+
+    if (existingReact) {
+      if (existingReact.state !== createCommentReactDto.state) {
+        existingReact.state = createCommentReactDto.state;
+        await existingReact.save();
+        return this.serializeCommentReact(existingReact);
+      } else {
+        return this.serializeCommentReact(existingReact);
+      }
+    }
 
     const newReact = await this.commentReactModel.create({
       ...createCommentReactDto,
