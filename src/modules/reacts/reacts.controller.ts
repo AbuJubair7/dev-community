@@ -6,37 +6,85 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ReactsService } from './reacts.service';
-import { CreateReactDto } from './dto/create-react.dto';
-import { UpdateReactDto } from './dto/update-react.dto';
+import { CreatePostReactDto } from './dto/create-post-react.dto';
+import { UpdatePostReactDto } from './dto/update-post-react.dto.';
+import { CreateCommentReactDto } from './dto/create-comment-react.dto';
+import { UpdateCommentReactDto } from './dto/update-comment-react.dto';
 
 @Controller('reacts')
 export class ReactsController {
   constructor(private readonly reactsService: ReactsService) {}
 
-  @Post()
-  create(@Body() createReactDto: CreateReactDto) {
-    return this.reactsService.create(createReactDto);
+  // ─── Post Reacts ────
+
+  @Post('post')
+  createPostReact(@Body() createPostReactDto: CreatePostReactDto) {
+    return this.reactsService.createPostReact(createPostReactDto);
   }
 
-  @Get()
-  findAll() {
-    return this.reactsService.findAll();
+  @Get('post')
+  findAllPostReacts(@Query('postId') postId: string) {
+    return this.reactsService.findAllPostReacts(postId);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.reactsService.findOne(+id);
+  @Get('post/:id')
+  findOnePostReact(@Param('id') id: string) {
+    return this.reactsService.findOnePostReact(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateReactDto: UpdateReactDto) {
-    return this.reactsService.update(+id, updateReactDto);
+  @Patch('post')
+  updatePostReact(
+    @Query('postId') postId: string,
+    @Query('userId') userId: string,
+    @Body() updatePostReactDto: UpdatePostReactDto,
+  ) {
+    return this.reactsService.updatePostReact(
+      postId,
+      userId,
+      updatePostReactDto,
+    );
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.reactsService.remove(+id);
+  @Delete('post/:id')
+  removePostReact(@Param('id') id: string, @Query('userId') userId: string) {
+    return this.reactsService.removePostReact(id, userId);
+  }
+
+  // ─── Comment Reacts ────
+
+  @Post('comment')
+  createCommentReact(@Body() createCommentReactDto: CreateCommentReactDto) {
+    return this.reactsService.createCommentReact(createCommentReactDto);
+  }
+
+  @Get('comment')
+  findAllCommentReacts(@Query('commentId') commentId: string) {
+    return this.reactsService.findAllCommentReacts(commentId);
+  }
+
+  @Get('comment/:id')
+  findOneCommentReact(@Param('id') id: string) {
+    return this.reactsService.findOneCommentReact(id);
+  }
+
+  @Patch('comment')
+  updateCommentReact(
+    @Query('commentId') commentId: string,
+    @Query('userId') userId: string,
+    @Body() updateCommentReactDto: UpdateCommentReactDto,
+  ) {
+    return this.reactsService.updateCommentReact(
+      commentId,
+      userId,
+      updateCommentReactDto,
+    );
+  }
+
+  @Delete('comment/:id')
+  removeCommentReact(@Param('id') id: string, @Query('userId') userId: string) {
+    return this.reactsService.removeCommentReact(id, userId);
   }
 }

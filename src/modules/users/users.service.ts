@@ -29,10 +29,7 @@ export class UsersService {
     if (user) {
       throw new ConflictException('User already exists');
     }
-    createUserDto.password = await bcrypt.hash(
-      createUserDto.password as string,
-      10,
-    );
+    createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
     const newUser = new this.userModel(createUserDto);
     const savedUser = await newUser.save();
 
@@ -65,10 +62,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
     if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(
-        updateUserDto.password as string,
-        10,
-      );
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
     }
     return await this.userModel
       .findByIdAndUpdate(id, updateUserDto, { new: true })
@@ -91,7 +85,7 @@ export class UsersService {
       throw new NotFoundException('Passwords do not match');
     }
     updatePassDto.newPassword = await bcrypt.hash(
-      updatePassDto.newPassword as string,
+      updatePassDto.newPassword,
       10,
     );
     return await this.userModel

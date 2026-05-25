@@ -9,6 +9,7 @@ import { Model, Types } from 'mongoose';
 import { Comment, CommentDocument } from './entities/comment.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { toObjectId } from '../../helpers/to-object-id';
 
 @Injectable()
 export class CommentsService {
@@ -29,14 +30,6 @@ export class CommentsService {
       userId: comment.userId.toString(),
       parentId: comment.parentId ? comment.parentId.toString() : null,
     };
-  }
-
-  private toObjectId(id: string, fieldName: string) {
-    if (!Types.ObjectId.isValid(id)) {
-      throw new BadRequestException(`Invalid ${fieldName}`);
-    }
-
-    return new Types.ObjectId(id);
   }
 
   private getPagination(page: string | undefined, limit: string | undefined) {
@@ -98,10 +91,10 @@ export class CommentsService {
 
   async create(createCommentDto: CreateCommentDto, userId: string) {
     const { postId, content, parentId = null } = createCommentDto;
-    const postObjectId = this.toObjectId(postId, 'post id');
-    const userObjectId = this.toObjectId(userId, 'user id');
+    const postObjectId = toObjectId(postId, 'post id');
+    const userObjectId = toObjectId(userId, 'user id');
     const parentObjectId = parentId
-      ? this.toObjectId(parentId, 'parent comment id')
+      ? toObjectId(parentId, 'parent comment id')
       : null;
 
     if (parentObjectId) {
@@ -129,7 +122,7 @@ export class CommentsService {
     limit?: string,
     replyLimit?: string,
   ) {
-    const postObjectId = this.toObjectId(postId, 'post id');
+    const postObjectId = toObjectId(postId, 'post id');
     const pagination = this.getPagination(page, limit);
 
     const [comments, total] = await Promise.all([
@@ -167,7 +160,7 @@ export class CommentsService {
   }
 
   async findReplies(id: string, page?: string, limit?: string) {
-    const commentObjectId = this.toObjectId(id, 'comment id');
+    const commentObjectId = toObjectId(id, 'comment id');
     const parent = await this.commentModel.findById(commentObjectId).exec();
     if (!parent) throw new NotFoundException('Comment not found');
 
@@ -175,15 +168,15 @@ export class CommentsService {
   }
 
   async findOne(id: string) {
-    const commentObjectId = this.toObjectId(id, 'comment id');
+    const commentObjectId = toObjectId(id, 'comment id');
     const comment = await this.commentModel.findById(commentObjectId).exec();
     if (!comment) throw new NotFoundException('Comment not found');
     return this.serializeComment(comment);
   }
 
   async update(id: string, userId: string, updateCommentDto: UpdateCommentDto) {
-    const commentObjectId = this.toObjectId(id, 'comment id');
-    const userObjectId = this.toObjectId(userId, 'user id');
+    const commentObjectId = toObjectId(id, 'comment id');
+    const userObjectId = toObjectId(userId, 'user id');
     const comment = await this.commentModel
       .findOneAndUpdate(
         { _id: commentObjectId, userId: userObjectId },
@@ -198,8 +191,8 @@ export class CommentsService {
   }
 
   async remove(id: string, userId: string) {
-    const commentObjectId = this.toObjectId(id, 'comment id');
-    const userObjectId = this.toObjectId(userId, 'user id');
+    const commentObjectId = toObjectId(id, 'comment id');
+    const userObjectId = toObjectId(userId, 'user id');
     const comment = await this.commentModel
       .findOneAndUpdate(
         { _id: commentObjectId, userId: userObjectId },
