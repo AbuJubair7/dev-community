@@ -37,6 +37,16 @@ export class CommunityController {
     return this.communityService.getMyCommunities(req.user.id);
   }
 
+  @Get('invites/my')
+  getMyInvites(@Req() req: any) {
+    return this.communityService.getMyInvites(req.user.id);
+  }
+
+  @Get('requests/managed')
+  getMyManagedRequests(@Req() req: any) {
+    return this.communityService.getMyManagedRequests(req.user.id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.communityService.findOne(id);
@@ -125,16 +135,6 @@ export class CommunityController {
   }
 
   // ─── Queries ───
-
-  @Get('invites/my')
-  getMyInvites(@Req() req: any) {
-    return this.communityService.getMyInvites(req.user.id);
-  }
-
-  @Get('requests/managed')
-  getMyManagedRequests(@Req() req: any) {
-    return this.communityService.getMyManagedRequests(req.user.id);
-  }
 
   @Get(':id/members')
   getMembers(@Param('id') communityId: string) {

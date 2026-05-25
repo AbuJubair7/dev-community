@@ -158,7 +158,7 @@ export class CommunityService {
     }
 
     return this.communityInviteModel.create({
-      communityId,
+      communityId: communityObjectId,
       inviterId: inviterObjectId,
       inviteeId: inviteeObjectId,
       status: InviteStatus.PENDING,
@@ -237,7 +237,10 @@ export class CommunityService {
     await invite.save();
 
     // Create community member
-    const communityObjectId = toObjectId(invite.communityId, 'community id');
+    const communityObjectId = toObjectId(
+      invite.communityId.toString(),
+      'community id',
+    );
     const existingMember = await this.communityMemberModel
       .findOne({ communityId: communityObjectId, userId: userObjectId })
       .exec();
@@ -432,13 +435,18 @@ export class CommunityService {
     const populatedInvites: any[] = [];
     for (const invite of invites) {
       const c = await this.communityModel.findById(invite.communityId).exec();
-      const inviter = await this.connection.model('User').findById(invite.inviterId).exec();
+      const inviter = await this.connection
+        .model('User')
+        .findById(invite.inviterId)
+        .exec();
       populatedInvites.push({
         _id: invite._id.toString(),
         communityId: invite.communityId.toString(),
         communityName: c ? c.name : 'Unknown Community',
         inviterId: invite.inviterId.toString(),
-        inviterName: inviter ? `${inviter.fname} ${inviter.lname}`.trim() : 'Unknown User',
+        inviterName: inviter
+          ? `${inviter.fname} ${inviter.lname}`.trim()
+          : 'Unknown User',
         status: invite.status,
       });
     }
