@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { CreateCommunityDto } from './dto/create-community.dto';
 import { UpdateCommunityDto } from './dto/update-community.dto';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 import { Community, CommunityDocument } from './entities/community.entity';
 import {
   CommunityMember,
@@ -14,7 +14,7 @@ import {
 } from './entities/community-member.entity';
 import { CommunityInvite } from './entities/community-invite.entity';
 import { CommunityRequest } from './entities/community-request.entity';
-import { Model } from 'mongoose';
+import { Model, Connection } from 'mongoose';
 import { toObjectId } from '../../helpers/to-object-id';
 import { Role } from './enums/role.enum';
 import { InviteStatus } from './enums/invite-status.enum';
@@ -29,6 +29,7 @@ export class CommunityService {
     private communityInviteModel: Model<CommunityInvite>,
     @InjectModel(CommunityRequest.name)
     private communityRequestModel: Model<CommunityRequest>,
+    @InjectConnection() private connection: Connection,
   ) {}
 
   private serializeCommunity(community: CommunityDocument) {
@@ -142,6 +143,20 @@ export class CommunityService {
       );
     }
 
+    // Check if a pending request already exists
+    const existingRequest = await this.communityRequestModel
+      .findOne({
+        communityId: communityObjectId,
+        userId: inviteeObjectId,
+        status: InviteStatus.PENDING,
+      })
+      .exec();
+    if (existingRequest) {
+      throw new BadRequestException(
+        'This user has already requested to join this community. Please approve their request instead.',
+      );
+    }
+
     return this.communityInviteModel.create({
       communityId,
       inviterId: inviterObjectId,
@@ -175,6 +190,20 @@ export class CommunityService {
     if (existingRequest) {
       throw new BadRequestException(
         'A join request is already pending for this community',
+      );
+    }
+
+    // Check if a pending invite already exists
+    const existingInvite = await this.communityInviteModel
+      .findOne({
+        communityId: communityId,
+        inviteeId: userObjectId,
+        status: InviteStatus.PENDING,
+      })
+      .exec();
+    if (existingInvite) {
+      throw new BadRequestException(
+        'You have already been invited to join this community. Please accept the invitation instead.',
       );
     }
 
@@ -396,9 +425,58 @@ export class CommunityService {
 
   async getMyInvites(userId: string) {
     const userObjectId = toObjectId(userId, 'user id');
-    return this.communityInviteModel
+    const invites = await this.communityInviteModel
       .find({ inviteeId: userObjectId, status: InviteStatus.PENDING })
       .exec();
+
+    const populatedInvites: any[] = [];
+    for (const invite of invites) {
+      const c = await this.communityModel.findById(invite.communityId).exec();
+      const inviter = await this.connection.model('User').findById(invite.inviterId).exec();
+      populatedInvites.push({
+        _id: invite._id.toString(),
+        communityId: invite.communityId.toString(),
+        communityName: c ? c.name : 'Unknown Community',
+        inviterId: invite.inviterId.toString(),
+        inviterName: inviter ? `${inviter.fname} ${inviter.lname}`.trim() : 'Unknown User',
+        status: invite.status,
+      });
+    }
+    return populatedInvites;
+  }
+
+  async getMyManagedRequests(userId: string) {
+    const userObjectId = toObjectId(userId, 'user id');
+    const memberships = await this.communityMemberModel
+      .find({
+        userId: userObjectId,
+        role: { $in: [Role.ADMIN, Role.MODERATOR] },
+      })
+      .exec();
+
+    const communityIds = memberships.map((m) => m.communityId);
+    const requests = await this.communityRequestModel
+      .find({
+        communityId: { $in: communityIds },
+        status: InviteStatus.PENDING,
+      })
+      .exec();
+
+    const populatedRequests: any[] = [];
+    for (const req of requests) {
+      const u = await this.connection.model('User').findById(req.userId).exec();
+      const c = await this.communityModel.findById(req.communityId).exec();
+      populatedRequests.push({
+        _id: req._id.toString(),
+        communityId: req.communityId.toString(),
+        communityName: c ? c.name : 'Unknown Community',
+        userId: req.userId.toString(),
+        userName: u ? `${u.fname} ${u.lname}`.trim() : 'Unknown User',
+        userEmail: u ? u.email : '',
+        status: req.status,
+      });
+    }
+    return populatedRequests;
   }
 
   async getMyRole(communityId: string, userId: string) {

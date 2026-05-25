@@ -59,14 +59,44 @@ export class PostsService {
     return this.serializePost(createdPost);
   }
 
-  async findAll() {
-    const posts = await this.postModel.find().exec();
+  async findAll(userId: string) {
+    const userObjectId = toObjectId(userId, 'user id');
+    const communityMemberModel = this.connection.model('CommunityMember');
+    const memberships = await communityMemberModel.find({ userId: userObjectId }).exec();
+    const joinedCommunityIds = memberships.map((m) => m.communityId);
+
+    const posts = await this.postModel.find({
+      $or: [
+        { communityId: { $in: joinedCommunityIds } },
+        { communityId: { $exists: false } },
+        { communityId: null },
+      ],
+    }).exec();
+
     return posts.map((post) => this.serializePost(post));
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string) {
     const post = await this.postModel.findById(id).exec();
     if (!post) throw new NotFoundException('Post not found');
+
+    if (post.communityId) {
+      const userObjectId = toObjectId(userId, 'user id');
+      const communityMemberModel = this.connection.model('CommunityMember');
+      const member = await communityMemberModel
+        .findOne({
+          communityId: post.communityId,
+          userId: userObjectId,
+        })
+        .exec();
+
+      if (!member) {
+        throw new ForbiddenException(
+          'You must be a member of the community to view this post',
+        );
+      }
+    }
+
     return this.serializePost(post);
   }
 

@@ -26,13 +26,13 @@ export class PostsController {
   }
 
   @Get()
-  findAll() {
-    return this.postsService.findAll();
+  findAll(@Req() req: Request) {
+    return this.postsService.findAll((req.user as any).id);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.postsService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: Request) {
+    return this.postsService.findOne(id, (req.user as any).id);
   }
 
   @Get('/user/:userId')
