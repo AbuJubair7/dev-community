@@ -1,5 +1,5 @@
 import { IsNotEmpty, IsOptional } from 'class-validator';
-import { InviteStatus } from '../enums/invite.enum';
+import { InviteStatus } from '../enums/invite-status.enum';
 
 export class CreateInviteDto {
   @IsNotEmpty()

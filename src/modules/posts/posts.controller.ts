@@ -14,7 +14,6 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { JwtGuard } from '../auth/guard/jwt.guard';
 import { Request } from 'express';
-import { SelfGuard } from '../auth/guard/self.guard';
 
 @UseGuards(JwtGuard)
 @Controller('posts')

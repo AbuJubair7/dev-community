@@ -3,7 +3,7 @@ import { Prop, SchemaFactory } from '@nestjs/mongoose';
 import { HydratedDocument, Schema as MongooseSchema, Types } from 'mongoose';
 import { User } from 'src/modules/users/entities/user.entity';
 import { Community } from './community.entity';
-import { Role } from 'src/modules/users/enums/role.enum';
+import { Role } from 'src/modules/community/enums/role.enum';
 
 export type CommunityMemberDocument = HydratedDocument<CommunityMember>;
 

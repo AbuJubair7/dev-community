@@ -3,7 +3,7 @@ import { Community } from './community.entity';
 import { User } from 'src/modules/users/entities/user.entity';
 import { Prop } from '@nestjs/mongoose';
 import { HydratedDocument, Types, Schema as MongooseSchema } from 'mongoose';
-import { InviteStatus } from '../enums/invite.enum';
+import { InviteStatus } from '../enums/invite-status.enum';
 
 export type CommunityRequestDocument = HydratedDocument<CommunityRequest>;
 

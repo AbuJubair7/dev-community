@@ -13,7 +13,10 @@ import { CreatePostReactDto } from './dto/create-post-react.dto';
 import { UpdatePostReactDto } from './dto/update-post-react.dto.';
 import { CreateCommentReactDto } from './dto/create-comment-react.dto';
 import { UpdateCommentReactDto } from './dto/update-comment-react.dto';
+import { UseGuards } from '@nestjs/common';
+import { JwtGuard } from '../auth/guard/jwt.guard';
 
+@UseGuards(JwtGuard)
 @Controller('reacts')
 export class ReactsController {
   constructor(private readonly reactsService: ReactsService) {}
