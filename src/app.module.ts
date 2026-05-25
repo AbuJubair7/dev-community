@@ -9,6 +9,7 @@ import { ExperiencesModule } from './modules/experiences/experiences.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { ReactsModule } from './modules/reacts/reacts.module';
+import { CommunityModule } from './modules/community/community.module';
 import 'dotenv/config';
 
 @Module({
@@ -21,6 +22,7 @@ import 'dotenv/config';
     PostsModule,
     CommentsModule,
     ReactsModule,
+    CommunityModule,
   ],
   controllers: [AppController],
   providers: [AppService],
