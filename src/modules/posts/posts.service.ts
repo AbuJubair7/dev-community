@@ -4,9 +4,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Post, PostDocument } from './entities/post.entity';
+import { PostStatus } from './enums/post-status.enum';
 import { Connection, Model } from 'mongoose';
 import { toObjectId } from '../../helpers/to-object-id';
 import { Role } from '../community/enums/role.enum';
@@ -16,6 +19,8 @@ export class PostsService {
   constructor(
     @InjectModel(Post.name) private postModel: Model<Post>,
     @InjectConnection() private connection: Connection,
+    // Inject the BullMQ queue — 'post-scheduler' matches the name in posts.module.ts
+    @InjectQueue('post-scheduler') private postSchedulerQueue: Queue,
   ) {}
 
   private serializePost(post: PostDocument) {
@@ -51,11 +56,42 @@ export class PostsService {
       );
     }
 
+    // ── Scheduling Logic ─────────────────────────────────────────────────
+    // Check if the user provided a postAt date AND it is in the future
+    const postAtDate = createPostDto.postAt
+      ? new Date(createPostDto.postAt)
+      : null;
+    const isScheduled = postAtDate && postAtDate.getTime() > Date.now();
+
+    // Save the post to MongoDB
+    // If scheduled → status: 'scheduled', else → status: 'published' (default)
     const createdPost = await this.postModel.create({
       ...createPostDto,
       userId: userObjectId,
       communityId: communityObjectId,
+      postAt: postAtDate ?? undefined,
+      status: isScheduled ? PostStatus.SCHEDULED : PostStatus.PUBLISHED,
     });
+
+    if (isScheduled && postAtDate) {
+      // Calculate how many milliseconds from NOW until postAt
+      const delayMs = postAtDate.getTime() - Date.now();
+
+      // Add a job to the BullMQ queue with the delay
+      // BullMQ stores this in Redis and waits until delayMs has passed
+      // then calls PostSchedulerProcessor.process() automatically
+      await this.postSchedulerQueue.add(
+        'publish-post', // job name (for identification)
+        { postId: createdPost._id.toString() }, // data passed to the processor
+        { delay: delayMs }, // wait this many ms before firing
+      );
+
+      console.log(
+        `📅 Post "${createdPost.title}" scheduled for ${postAtDate.toISOString()} (in ${Math.round(delayMs / 1000)}s)`,
+      );
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     return this.serializePost(createdPost);
   }
 
