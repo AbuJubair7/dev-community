@@ -7,12 +7,16 @@ import {
   CommentReact,
   CommentReactSchema,
 } from './entities/comment-react.entity';
+import { Post, PostSchema } from '../posts/entities/post.entity';
+import { User, UserSchema } from '../users/entities/user.entity';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: PostReact.name, schema: PostReactSchema },
       { name: CommentReact.name, schema: CommentReactSchema },
+      { name: Post.name, schema: PostSchema },
+      { name: User.name, schema: UserSchema },
     ]),
   ],
   controllers: [ReactsController],
