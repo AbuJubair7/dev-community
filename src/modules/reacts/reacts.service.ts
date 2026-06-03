@@ -10,8 +10,11 @@ import {
   CommentReact,
   CommentReactDocument,
 } from './entities/comment-react.entity';
+import { Post, PostDocument } from '../posts/entities/post.entity';
+import { User, UserDocument } from '../users/entities/user.entity';
 import { toObjectId } from '../../helpers/to-object-id';
 import { ReactState } from './enums/react-state.enum';
+import { sendMail } from '../../helpers/mailer';
 
 @Injectable()
 export class ReactsService {
@@ -19,6 +22,8 @@ export class ReactsService {
     @InjectModel(PostReact.name) private postReactModel: Model<PostReact>,
     @InjectModel(CommentReact.name)
     private commentReactModel: Model<CommentReact>,
+    @InjectModel(Post.name) private postModel: Model<Post>,
+    @InjectModel(User.name) private userModel: Model<User>,
   ) {}
 
   private serializePostReact(react: PostReactDocument) {
@@ -51,22 +56,50 @@ export class ReactsService {
       .findOne({ userId, postId })
       .exec();
 
+    let savedReact: PostReactDocument;
+
     if (existingReact) {
       if (existingReact.state !== createPostReactDto.state) {
         existingReact.state = createPostReactDto.state;
         await existingReact.save();
-        return this.serializePostReact(existingReact);
+        savedReact = existingReact;
       } else {
         return this.serializePostReact(existingReact);
       }
+    } else {
+      savedReact = await this.postReactModel.create({
+        ...createPostReactDto,
+        userId,
+        postId,
+      });
     }
-    const newReact = await this.postReactModel.create({
-      ...createPostReactDto,
-      userId,
-      postId,
-    });
 
-    return this.serializePostReact(newReact);
+    // ── Dislike threshold check ──────────────────────────────────────────
+    if (savedReact.state === ReactState.DISLIKE) {
+      const dislikeCount = await this.postReactModel
+        .countDocuments({ postId, state: ReactState.DISLIKE })
+        .exec();
+
+      if (dislikeCount === 11) {
+        const post = await this.postModel.findById(postId).exec();
+
+        if (post) {
+          const owner = await this.userModel.findById(post.userId).exec();
+
+          if (owner) {
+            await sendMail({
+              to: [owner.email],
+              subject: 'Your post has received more than 10 dislikes',
+              text: `Hi ${owner.fname}, your post "${post.title}" has received more than 10 dislikes. You may want to review it.`,
+              html: `<p>Hi <b>${owner.fname}</b>,</p><p>Your post <b>"${post.title}"</b> has received more than 10 dislikes.</p><p>You may want to review or update your content.</p>`,
+            });
+          }
+        }
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────
+
+    return this.serializePostReact(savedReact);
   }
 
   // return count of reacts for each state
