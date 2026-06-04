@@ -1,0 +1,29 @@
+import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { CreateUserDto } from 'src/modules/users/dto/create-user.dto';
+import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @Post('register')
+  register(@Body() createUserDto: CreateUserDto) {
+    return this.authService.register(createUserDto);
+  }
+
+  @Post('login')
+  login(@Body() loginDto: LoginDto) {
+    return this.authService.login(loginDto);
+  }
+
+  @Get('google/link')
+  googleLink() {
+    return this.authService.getGoogleAuthLink();
+  }
+
+  @Get('google/callback')
+  googleCallback(@Query('code') code: string) {
+    return this.authService.loginWithGoogle(code);
+  }
+}

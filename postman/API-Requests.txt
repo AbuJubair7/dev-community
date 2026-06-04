@@ -1,0 +1,556 @@
+API Requests
+
+1. App API
+-----------------------------------
+Method: GET
+URL: /
+Controller/Function: AppController.getHello
+Auth Required: None
+Response Example: HTTP 200 (string)
+
+2. Auth API
+-----------------------------------
+Method: POST
+URL: /auth/register
+Controller/Function: AuthController.register
+Auth Required: None
+Request Body (JSON):
+{
+  "fname": "John",
+  "lname": "Doe",
+  "email": "user@example.com",
+  "password": "Password1"
+}
+Response Example: HTTP 201
+
+Method: POST
+URL: /auth/login
+Controller/Function: AuthController.login
+Auth Required: None
+Request Body (JSON):
+{
+  "email": "user@example.com",
+  "password": "Password1"
+}
+Response Example: HTTP 201
+
+3. Users API
+-----------------------------------
+Method: GET
+URL: /users
+Controller/Function: UsersController.findAll
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /users/:id
+Controller/Function: UsersController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: PATCH
+URL: /users
+Controller/Function: UsersController.update
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "fname": "John",
+  "lname": "Doe"
+}
+
+Method: PATCH
+URL: /users/password
+Controller/Function: UsersController.updatePassword
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "oldPassword": "OldPassword1",
+  "newPassword": "NewPassword1",
+  "confirmPassword": "NewPassword1"
+}
+
+Method: DELETE
+URL: /users
+Controller/Function: UsersController.remove
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+4. Skills API
+-----------------------------------
+Method: POST
+URL: /skills
+Controller/Function: SkillsController.create
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "name": "JavaScript"
+}
+
+Method: GET
+URL: /skills
+Controller/Function: SkillsController.findAll
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /skills/:id
+Controller/Function: SkillsController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /skills/user/:userId
+Controller/Function: SkillsController.findOneByUserId
+URL Parameters: userId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: PATCH
+URL: /skills/:id
+Controller/Function: SkillsController.update
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "name": "Updated Skill Name"
+}
+
+Method: DELETE
+URL: /skills/:id
+Controller/Function: SkillsController.remove
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+5. Experiences API
+-----------------------------------
+Method: POST
+URL: /experiences
+Controller/Function: ExperiencesController.create
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "companyName": "Tech Corp",
+  "role": "Software Engineer",
+  "startDate": "2023-01-01",
+  "endDate": "2024-01-01",
+  "description": "Developed backend systems."
+}
+
+Method: GET
+URL: /experiences
+Controller/Function: ExperiencesController.findAll
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /experiences/:id
+Controller/Function: ExperiencesController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /experiences/user/:userId
+Controller/Function: ExperiencesController.findOneByUserId
+URL Parameters: userId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: PATCH
+URL: /experiences/:id
+Controller/Function: ExperiencesController.update
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "companyName": "Updated Tech Corp",
+  "role": "Senior Engineer"
+}
+
+Method: DELETE
+URL: /experiences/:id
+Controller/Function: ExperiencesController.remove
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+6. Posts API
+-----------------------------------
+Method: POST
+URL: /posts
+Controller/Function: PostsController.create
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "communityId": "6a0ea06ffa50fb2f7b57cb01",
+  "title": "My First Post",
+  "content": "This is the content of my post.",
+  "postAt": "2026-06-03T13:00:00Z"
+}
+
+Method: GET
+URL: /posts
+Controller/Function: PostsController.findAll
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /posts/:id
+Controller/Function: PostsController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /posts/user/:userId
+Controller/Function: PostsController.findUserPosts
+URL Parameters: userId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: PATCH
+URL: /posts/:id
+Controller/Function: PostsController.update
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "title": "Updated Post Title",
+  "content": "Updated Post Content.",
+  "communityId": "6a0ea06ffa50fb2f7b57cb01",
+  "postAt": "2026-06-03T14:00:00Z"
+}
+
+Method: DELETE
+URL: /posts/:id
+Controller/Function: PostsController.remove
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+7. Comments API
+-----------------------------------
+Method: POST
+URL: /comments
+Controller/Function: CommentsController.create
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "postId": "6a0ea06ffa50fb2f7b57cbb9",
+  "content": "This is a comment.",
+  "parentId": "6a0ea06ffa50fb2f7b57cbba"
+}
+
+Method: GET
+URL: /comments/post/:postId
+Controller/Function: CommentsController.findAllByPost
+URL Parameters: postId (string)
+Query Parameters:
+  - page (string, optional, e.g. "1")
+  - limit (string, optional, e.g. "3")
+  - replyLimit (string, optional, e.g. "5")
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /comments/:id/replies
+Controller/Function: CommentsController.findReplies
+URL Parameters: id (string)
+Query Parameters:
+  - page (string, optional, e.g. "1")
+  - limit (string, optional, e.g. "3")
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /comments/:id
+Controller/Function: CommentsController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: PATCH
+URL: /comments/:id
+Controller/Function: CommentsController.update
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "content": "This is an updated comment."
+}
+
+Method: DELETE
+URL: /comments/:id
+Controller/Function: CommentsController.remove
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+8. Reacts API
+-----------------------------------
+Method: POST
+URL: /reacts/post
+Controller/Function: ReactsController.createPostReact
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "userId": "6a0ea06ffa50fb2f7b57c001",
+  "postId": "6a0ea06ffa50fb2f7b57cbb9",
+  "state": "LIKE"
+}
+
+Method: GET
+URL: /reacts/post
+Controller/Function: ReactsController.findAllPostReacts
+Query Parameters:
+  - postId (string, required, e.g. "6a0ea06ffa50fb2f7b57cbb9")
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /reacts/post/:id
+Controller/Function: ReactsController.findOnePostReact
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: PATCH
+URL: /reacts/post
+Controller/Function: ReactsController.updatePostReact
+Query Parameters:
+  - postId (string, required)
+  - userId (string, required)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "state": "DISLIKE"
+}
+
+Method: DELETE
+URL: /reacts/post/:id
+Controller/Function: ReactsController.removePostReact
+URL Parameters: id (string)
+Query Parameters:
+  - userId (string, required)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: POST
+URL: /reacts/comment
+Controller/Function: ReactsController.createCommentReact
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "userId": "6a0ea06ffa50fb2f7b57c001",
+  "commentId": "6a0ea06ffa50fb2f7b57cbba",
+  "state": "LIKE"
+}
+
+Method: GET
+URL: /reacts/comment
+Controller/Function: ReactsController.findAllCommentReacts
+Query Parameters:
+  - commentId (string, required, e.g. "6a0ea06ffa50fb2f7b57cbba")
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /reacts/comment/:id
+Controller/Function: ReactsController.findOneCommentReact
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: PATCH
+URL: /reacts/comment
+Controller/Function: ReactsController.updateCommentReact
+Query Parameters:
+  - commentId (string, required)
+  - userId (string, required)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "state": "NEUTRAL"
+}
+
+Method: DELETE
+URL: /reacts/comment/:id
+Controller/Function: ReactsController.removeCommentReact
+URL Parameters: id (string)
+Query Parameters:
+  - userId (string, required)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+9. Community API
+-----------------------------------
+Method: POST
+URL: /community
+Controller/Function: CommunityController.create
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+Request Body (JSON):
+{
+  "name": "Backend Developers",
+  "description": "A place for backend developer discussions."
+}
+
+Method: GET
+URL: /community
+Controller/Function: CommunityController.findAll
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /community/member/my
+Controller/Function: CommunityController.getMyCommunities
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /community/invites/my
+Controller/Function: CommunityController.getMyInvites
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /community/requests/managed
+Controller/Function: CommunityController.getMyManagedRequests
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /community/:id
+Controller/Function: CommunityController.findOne
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: PATCH
+URL: /community/:id
+Controller/Function: CommunityController.update
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT (Role: admin or moderator)
+Request Body (JSON):
+{
+  "name": "Updated Community Name",
+  "description": "Updated Community Description."
+}
+
+Method: DELETE
+URL: /community/:id
+Controller/Function: CommunityController.remove
+URL Parameters: id (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT (Role: admin)
+
+Method: POST
+URL: /community/:id/invite
+Controller/Function: CommunityController.invite
+URL Parameters: id (string - communityId)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT (Role: admin or moderator)
+Request Body (JSON):
+{
+  "inviteeId": "6a0ea06ffa50fb2f7b57c002"
+}
+
+Method: POST
+URL: /community/:id/request
+Controller/Function: CommunityController.requestToJoin
+URL Parameters: id (string - communityId)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: POST
+URL: /community/invite/:inviteId/accept
+Controller/Function: CommunityController.acceptInvite
+URL Parameters: inviteId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: POST
+URL: /community/invite/:inviteId/decline
+Controller/Function: CommunityController.declineInvite
+URL Parameters: inviteId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: POST
+URL: /community/:id/request/:requestId/accept
+Controller/Function: CommunityController.acceptRequest
+URL Parameters:
+  - id (string - communityId)
+  - requestId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT (Role: admin or moderator)
+
+Method: POST
+URL: /community/:id/request/:requestId/decline
+Controller/Function: CommunityController.declineRequest
+URL Parameters:
+  - id (string - communityId)
+  - requestId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT (Role: admin or moderator)
+
+Method: PATCH
+URL: /community/:id/member/:userId/role
+Controller/Function: CommunityController.changeRole
+URL Parameters:
+  - id (string - communityId)
+  - userId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT (Role: admin)
+Request Body (JSON):
+{
+  "role": "moderator"
+}
+
+Method: DELETE
+URL: /community/:id/member/:userId
+Controller/Function: CommunityController.removeMember
+URL Parameters:
+  - id (string - communityId)
+  - userId (string)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT (Role: admin or moderator)
+
+Method: GET
+URL: /community/:id/members
+Controller/Function: CommunityController.getMembers
+URL Parameters: id (string - communityId)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
+
+Method: GET
+URL: /community/:id/requests
+Controller/Function: CommunityController.getRequests
+URL Parameters: id (string - communityId)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT (Role: admin or moderator)
+
+Method: GET
+URL: /community/:id/my-role
+Controller/Function: CommunityController.getMyRole
+URL Parameters: id (string - communityId)
+Headers: Authorization: Bearer <token>
+Auth Required: JWT
