@@ -3,52 +3,43 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { Post, PostDocument } from './entities/post.entity';
+import { PostEntity } from './pg-entities/post.entity';
+import { CommunityMemberEntity } from '../community/pg-entities/community-member.entity';
 import { PostStatus } from './enums/post-status.enum';
-import { Connection, Model } from 'mongoose';
-import { toObjectId } from '../../helpers/to-object-id';
+import { In, IsNull, Repository } from 'typeorm';
+import { validateUuid } from '../../helpers/validate-uuid';
 import { Role } from '../community/enums/role.enum';
 
 @Injectable()
 export class PostsService {
   constructor(
-    @InjectModel(Post.name) private postModel: Model<Post>,
-    @InjectConnection() private connection: Connection,
+    @InjectRepository(PostEntity)
+    private postRepository: Repository<PostEntity>,
+    @InjectRepository(CommunityMemberEntity)
+    private communityMemberRepository: Repository<CommunityMemberEntity>,
     // Inject the BullMQ queue — 'post-scheduler' matches the name in posts.module.ts
     @InjectQueue('post-scheduler') private postSchedulerQueue: Queue,
   ) {}
 
-  private serializePost(post: PostDocument) {
-    const serializedPost = post.toObject();
-
-    return {
-      ...serializedPost,
-      _id: post._id.toString(),
-      userId: post.userId.toString(),
-      communityId: post.communityId ? post.communityId.toString() : undefined,
-    };
-  }
-
   async create(createPostDto: CreatePostDto, userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const communityObjectId = toObjectId(
+    const userObjectId = validateUuid(userId, 'user id');
+    const communityObjectId = validateUuid(
       createPostDto.communityId,
       'community id',
     );
 
     // Verify user is a member of the community
-    const communityMemberModel = this.connection.model('CommunityMember');
-    const member = await communityMemberModel
-      .findOne({
+    const member = await this.communityMemberRepository.findOne({
+      where: {
         communityId: communityObjectId,
         userId: userObjectId,
-      })
-      .exec();
+      },
+    });
 
     if (!member) {
       throw new ForbiddenException(
@@ -63,72 +54,67 @@ export class PostsService {
       : null;
     const isScheduled = postAtDate && postAtDate.getTime() > Date.now();
 
-    // Save the post to MongoDB
+    // Save the post
     // If scheduled → status: 'scheduled', else → status: 'published' (default)
-    const createdPost = await this.postModel.create({
+    const createdPost = this.postRepository.create({
       ...createPostDto,
       userId: userObjectId,
       communityId: communityObjectId,
       postAt: postAtDate ?? undefined,
       status: isScheduled ? PostStatus.SCHEDULED : PostStatus.PUBLISHED,
     });
+    const savedPost = await this.postRepository.save(createdPost);
 
     if (isScheduled && postAtDate) {
       // Calculate how many milliseconds from NOW until postAt
       const delayMs = postAtDate.getTime() - Date.now();
 
       // Add a job to the BullMQ queue with the delay
-      // BullMQ stores this in Redis and waits until delayMs has passed
-      // then calls PostSchedulerProcessor.process() automatically
       await this.postSchedulerQueue.add(
-        'publish-post', // job name (for identification)
-        { postId: createdPost._id.toString() }, // data passed to the processor
+        'publish-post', // job name
+        { postId: savedPost._id }, // data passed to the processor
         { delay: delayMs }, // wait this many ms before firing
       );
 
       console.log(
-        `📅 Post "${createdPost.title}" scheduled for ${postAtDate.toISOString()} (in ${Math.round(delayMs / 1000)}s)`,
+        `📅 Post "${savedPost.title}" scheduled for ${postAtDate.toISOString()} (in ${Math.round(delayMs / 1000)}s)`,
       );
     }
     // ─────────────────────────────────────────────────────────────────────
 
-    return this.serializePost(createdPost);
+    return savedPost;
   }
 
   async findAll(userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const communityMemberModel = this.connection.model('CommunityMember');
-    const memberships = await communityMemberModel
-      .find({ userId: userObjectId })
-      .exec();
+    const userObjectId = validateUuid(userId, 'user id');
+    const memberships = await this.communityMemberRepository.find({
+      where: { userId: userObjectId },
+    });
     const joinedCommunityIds = memberships.map((m) => m.communityId);
 
-    const posts = await this.postModel
-      .find({
-        $or: [
-          { communityId: { $in: joinedCommunityIds } },
-          { communityId: { $exists: false } },
-          { communityId: null },
-        ],
-      })
-      .exec();
+    const whereConditions: any[] = [{ communityId: IsNull() }];
+    if (joinedCommunityIds.length > 0) {
+      whereConditions.push({ communityId: In(joinedCommunityIds) });
+    }
 
-    return posts.map((post) => this.serializePost(post));
+    return await this.postRepository.find({
+      where: whereConditions,
+    });
   }
 
   async findOne(id: string, userId: string) {
-    const post = await this.postModel.findById(id).exec();
+    validateUuid(id, 'post id');
+    const post = await this.postRepository.findOne({ where: { _id: id } });
     if (!post) throw new NotFoundException('Post not found');
 
     if (post.communityId) {
-      const userObjectId = toObjectId(userId, 'user id');
-      const communityMemberModel = this.connection.model('CommunityMember');
-      const member = await communityMemberModel
-        .findOne({
+      const userObjectId = validateUuid(userId, 'user id');
+      const member = await this.communityMemberRepository.findOne({
+        where: {
           communityId: post.communityId,
           userId: userObjectId,
-        })
-        .exec();
+        },
+      });
 
       if (!member) {
         throw new ForbiddenException(
@@ -137,43 +123,45 @@ export class PostsService {
       }
     }
 
-    return this.serializePost(post);
+    return post;
   }
 
   async findOneByUserId(userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const posts = await this.postModel.find({ userId: userObjectId }).exec();
-    return posts.map((post) => this.serializePost(post));
+    const userObjectId = validateUuid(userId, 'user id');
+    return await this.postRepository.find({ where: { userId: userObjectId } });
   }
 
   async update(postId: string, userId: string, updatePostDto: UpdatePostDto) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const post = await this.postModel
-      .findOneAndUpdate({ _id: postId, userId: userObjectId }, updatePostDto, {
-        new: true,
-      })
-      .exec();
+    validateUuid(postId, 'post id');
+    const userObjectId = validateUuid(userId, 'user id');
+
+    const post = await this.postRepository.findOne({
+      where: { _id: postId, userId: userObjectId },
+    });
     if (!post) throw new NotFoundException('Post not found or not yours');
-    return this.serializePost(post);
+
+    Object.assign(post, updatePostDto);
+    return await this.postRepository.save(post);
   }
 
   async remove(postId: string, userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const post = await this.postModel.findById(postId).exec();
+    validateUuid(postId, 'post id');
+    const userObjectId = validateUuid(userId, 'user id');
+
+    const post = await this.postRepository.findOne({ where: { _id: postId } });
     if (!post) throw new NotFoundException('Post not found');
 
-    const isOwner = post.userId.toString() === userObjectId.toString();
+    const isOwner = post.userId === userObjectId;
     let isAllowed = isOwner;
 
     if (!isAllowed && post.communityId) {
       // Check if user is admin or moderator in the community the post belongs to
-      const communityMemberModel = this.connection.model('CommunityMember');
-      const member = await communityMemberModel
-        .findOne({
+      const member = await this.communityMemberRepository.findOne({
+        where: {
           communityId: post.communityId,
           userId: userObjectId,
-        })
-        .exec();
+        },
+      });
 
       if (
         member &&
@@ -189,7 +177,7 @@ export class PostsService {
       );
     }
 
-    await this.postModel.findByIdAndDelete(postId).exec();
-    return this.serializePost(post);
+    await this.postRepository.remove(post);
+    return post;
   }
 }

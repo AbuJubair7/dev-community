@@ -4,56 +4,52 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdatePassDto } from './dto/update-pass.dto';
-import { User, UserDocument } from './entities/user.entity';
+import { UserEntity } from './pg-entities/user.entity';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
-
-  private serializeUser(user: UserDocument) {
-    return {
-      ...user.toObject(),
-      _id: user._id.toString(),
-    };
-  }
+  constructor(
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
+  ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const user = await this.userModel
-      .findOne({ email: createUserDto.email })
-      .exec();
+    const user = await this.userRepository.findOne({
+      where: { email: createUserDto.email },
+    });
     if (user) {
       throw new ConflictException('User already exists');
     }
     createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
-    const newUser = new this.userModel(createUserDto);
-    const savedUser = await newUser.save();
+    const newUser = this.userRepository.create(createUserDto);
+    const savedUser = await this.userRepository.save(newUser);
 
-    return this.serializeUser(savedUser);
+    return savedUser;
   }
 
   async findAll() {
-    return await this.userModel.find().exec();
+    return await this.userRepository.find();
   }
 
   async findById(id: string) {
-    const user = await this.userModel.findById(id).exec();
+    const user = await this.userRepository.findOne({ where: { _id: id } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return this.serializeUser(user);
+    return user;
   }
 
   async findByEmail(email: string) {
-    const user = await this.userModel.findOne({ email }).exec();
+    const user = await this.userRepository.findOne({ where: { email } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    return this.serializeUser(user);
+    return user;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
@@ -64,9 +60,8 @@ export class UsersService {
     if (updateUserDto.password) {
       updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
     }
-    return await this.userModel
-      .findByIdAndUpdate(id, updateUserDto, { new: true })
-      .exec();
+    Object.assign(user, updateUserDto);
+    return await this.userRepository.save(user);
   }
 
   async updatePassword(id: string, updatePassDto: UpdatePassDto) {
@@ -84,13 +79,9 @@ export class UsersService {
     if (updatePassDto.newPassword !== updatePassDto.confirmPassword) {
       throw new NotFoundException('Passwords do not match');
     }
-    updatePassDto.newPassword = await bcrypt.hash(
-      updatePassDto.newPassword,
-      10,
-    );
-    return await this.userModel
-      .findByIdAndUpdate(id, updatePassDto, { new: true })
-      .exec();
+    const newHashedPassword = await bcrypt.hash(updatePassDto.newPassword, 10);
+    user.password = newHashedPassword;
+    return await this.userRepository.save(user);
   }
 
   async remove(id: string) {
@@ -98,7 +89,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
-    const deletedUser = await this.userModel.findByIdAndDelete(id).exec();
-    return deletedUser;
+    await this.userRepository.remove(user);
+    return user;
   }
 }

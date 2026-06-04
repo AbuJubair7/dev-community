@@ -53,7 +53,7 @@ describe('AuthService', () => {
         email: 'test@example.com',
         password: 'correct-password',
       };
-      
+
       const hashedPassword = bcrypt.hashSync(loginDto.password, 10);
       const mockUser = {
         _id: 'user-id-123',
@@ -92,7 +92,9 @@ describe('AuthService', () => {
         password: 'password123',
       };
 
-      mockUsersService.findByEmail.mockRejectedValue(new NotFoundException('User not found'));
+      mockUsersService.findByEmail.mockRejectedValue(
+        new NotFoundException('User not found'),
+      );
 
       // Act & Assert
       await expect(service.login(loginDto)).rejects.toThrow(

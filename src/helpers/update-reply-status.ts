@@ -1,23 +1,20 @@
-import { Model } from 'mongoose';
-import { Comment } from 'src/modules/comments/entities/comment.entity';
+import { Repository } from 'typeorm';
+import { CommentEntity } from 'src/modules/comments/pg-entities/comment.entity';
 
 // Recursive soft-deletion of replies
 export async function updateReplyStatus(
   parentId: string,
-  commentModel: Model<Comment>,
+  commentRepository: Repository<CommentEntity>,
 ): Promise<void> {
-  const children = await commentModel.find({ parentId }).exec();
+  const children = await commentRepository.find({ where: { parentId } });
 
   for (const child of children) {
     // Update the child comment to be soft-deleted
-    await commentModel
-      .findByIdAndUpdate(child._id, {
-        isDeleted: true,
-        content: '[This comment has been deleted]',
-      })
-      .exec();
+    child.isDeleted = true;
+    child.content = '[This comment has been deleted]';
+    await commentRepository.save(child);
 
     // Recursively apply to the child's own replies
-    await updateReplyStatus(child._id.toString(), commentModel);
+    await updateReplyStatus(child._id, commentRepository);
   }
 }

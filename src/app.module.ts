@@ -11,19 +11,22 @@ import { PostsModule } from './modules/posts/posts.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { ReactsModule } from './modules/reacts/reacts.module';
 import { CommunityModule } from './modules/community/community.module';
+import { dbConfig } from './config/db';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import 'dotenv/config';
 
 @Module({
   imports: [
+    TypeOrmModule.forRoot(dbConfig),
     MongooseModule.forRoot(process.env.MONGO_URI as string),
 
     // Global BullMQ setup — all queues across all modules share this connection
     // connection.url points to our Upstash Redis instance
-    // enableOfflineQueue: false → fail fast if Redis is unreachable (don't hang)
+    // enableOfflineQueue: true → allow queueing commands during reconnection (prevent console spam)
     BullModule.forRoot({
       connection: {
         url: process.env.REDIS_URL,
-        enableOfflineQueue: false,
+        enableOfflineQueue: true,
       },
     }),
 
