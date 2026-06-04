@@ -23,10 +23,14 @@ import 'dotenv/config';
     // Global BullMQ setup — all queues across all modules share this connection
     // connection.url points to our Upstash Redis instance
     // enableOfflineQueue: true → allow queueing commands during reconnection (prevent console spam)
+    // keepAlive: 30000 → enables TCP keep-alive probes every 30s to prevent idle connection resets
+    // noDelay: true → disables Nagle's algorithm for low-latency command execution
     BullModule.forRoot({
       connection: {
         url: process.env.REDIS_URL,
         enableOfflineQueue: true,
+        keepAlive: 30000,
+        noDelay: true,
       },
     }),
 
