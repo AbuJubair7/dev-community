@@ -10,8 +10,8 @@ export const dbConfig: DataSourceOptions = {
   database: process.env.DB_NAME,
   synchronize: true,
   logging: false,
-  entities: [],
-  migrations: ['src/config/migrations/*.ts'],
+  entities: [__dirname + '/../modules/**/pg-entities/*.entity{.ts,.js}'],
+  migrations: [__dirname + '/migrations/*{.ts,.js}'],
 };
 
 export default dbConfig;
