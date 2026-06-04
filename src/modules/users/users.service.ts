@@ -18,14 +18,16 @@ export class UsersService {
     private userRepository: Repository<UserEntity>,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto, isGoogleUser: boolean = false) {
     const user = await this.userRepository.findOne({
       where: { email: createUserDto.email },
     });
     if (user) {
       throw new ConflictException('User already exists');
     }
-    createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
+    if (!isGoogleUser) {
+      createUserDto.password = await bcrypt.hash(createUserDto.password, 10);
+    }
     const newUser = this.userRepository.create(createUserDto);
     const savedUser = await this.userRepository.save(newUser);
 
