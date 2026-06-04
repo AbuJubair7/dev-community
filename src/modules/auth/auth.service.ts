@@ -8,7 +8,18 @@ import { CreateUserDto } from 'src/modules/users/dto/create-user.dto';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from 'src/modules/users/users.service';
 import { LoginDto } from './dto/login.dto';
-import bcrypt from 'bcrypt';
+import {
+  getGoogleAuthLink as generateGoogleLink,
+  handleGoogleCallback,
+} from 'src/helpers/google-signin-handler';
+import * as bcrypt from 'bcrypt';
+import 'dotenv/config';
+
+export interface UserDocument {
+  _id: string;
+  email: string;
+  password?: string;
+}
 
 @Injectable()
 export class AuthService {
@@ -16,21 +27,68 @@ export class AuthService {
     private jwtService: JwtService,
     private usersService: UsersService,
   ) {}
-  async register(createUserDto: CreateUserDto) {
-    const res = await this.usersService.create(createUserDto);
-    if (!res) {
-      throw new InternalServerErrorException('User not created');
+
+  getGoogleAuthLink() {
+    const authUrl = generateGoogleLink();
+    return { url: authUrl };
+  }
+
+  async loginWithGoogle(code: string) {
+    const { email, name } = await handleGoogleCallback(code);
+    if (!email || !name) {
+      throw new InternalServerErrorException(
+        'Failed to retrieve Google profile',
+      );
     }
-    const token = await this.signToken(res._id, res.email);
-    res.password = '****************';
+
+    let user: UserDocument;
+
+    try {
+      user = await this.usersService.findByEmail(email);
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        const createUserDto: CreateUserDto = {
+          fname: name.split(' ')[0] || 'Google',
+          lname: name.split(' ')[1] || 'User',
+          email,
+          password: '****************',
+        };
+
+        try {
+          user = await this.usersService.create(createUserDto);
+        } catch {
+          throw new InternalServerErrorException('User could not be created');
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    const token = await this.signToken(user._id, user.email);
+    user.password = '****************';
+
     return {
       token,
-      user: res,
+      user,
     };
   }
 
+  async register(createUserDto: CreateUserDto) {
+    try {
+      const res = await this.usersService.create(createUserDto);
+      const token = await this.signToken(res._id, res.email);
+      res.password = '****************';
+      return {
+        token,
+        user: res,
+      };
+    } catch {
+      throw new InternalServerErrorException('User registration failed');
+    }
+  }
+
   async login(loginDto: LoginDto) {
-    let user;
+    let user: UserDocument;
     try {
       user = await this.usersService.findByEmail(loginDto.email);
     } catch (error) {
@@ -38,6 +96,10 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
       throw error;
+    }
+
+    if (!user.password) {
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -55,7 +117,6 @@ export class AuthService {
     };
   }
 
-  // Generate JWT token
   async signToken(userId: string, email: string) {
     const payload = {
       id: userId,
