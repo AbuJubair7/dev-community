@@ -1,50 +1,42 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Skill, SkillDocument } from './entities/skill.entity';
-import { toObjectId } from '../../helpers/to-object-id';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SkillEntity } from './pg-entities/skill.entity';
+import { validateUuid } from '../../helpers/validate-uuid';
 
 @Injectable()
 export class SkillsService {
-  constructor(@InjectModel(Skill.name) private skillModel: Model<Skill>) {}
-
-  private serializeSkill(skill: SkillDocument) {
-    const serializedSkill = skill.toObject();
-
-    return {
-      ...serializedSkill,
-      _id: skill._id.toString(),
-      userId: skill.userId.toString(),
-    };
-  }
+  constructor(
+    @InjectRepository(SkillEntity)
+    private skillRepository: Repository<SkillEntity>,
+  ) {}
 
   async create(createSkillDto: CreateSkillDto, id: string) {
-    const userId = toObjectId(id, 'user id');
-    const skill = await this.skillModel.create({
+    const userId = validateUuid(id, 'user id');
+    const skill = this.skillRepository.create({
       ...createSkillDto,
       userId,
     });
-    return this.serializeSkill(skill);
+    return await this.skillRepository.save(skill);
   }
 
   async findAll(id: string) {
-    const userId = toObjectId(id, 'user id');
-    const skills = await this.skillModel.find({ userId }).exec();
-    return skills.map((skill) => this.serializeSkill(skill));
+    const userId = validateUuid(id, 'user id');
+    return await this.skillRepository.find({ where: { userId } });
   }
 
   async findOne(id: string) {
-    const skill = await this.skillModel.findById(id).exec();
+    validateUuid(id, 'skill id');
+    const skill = await this.skillRepository.findOne({ where: { _id: id } });
     if (!skill) throw new NotFoundException('Skill not found');
-    return this.serializeSkill(skill);
+    return skill;
   }
 
   async findOneByUserId(userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const skills = await this.skillModel.find({ userId: userObjectId }).exec();
-    return skills.map((skill) => this.serializeSkill(skill));
+    const userObjectId = validateUuid(userId, 'user id');
+    return await this.skillRepository.find({ where: { userId: userObjectId } });
   }
 
   async update(
@@ -52,24 +44,28 @@ export class SkillsService {
     userId: string,
     updateSkillDto: UpdateSkillDto,
   ) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const skill = await this.skillModel
-      .findOneAndUpdate(
-        { _id: skillId, userId: userObjectId },
-        updateSkillDto,
-        { new: true },
-      )
-      .exec();
+    const userObjectId = validateUuid(userId, 'user id');
+    validateUuid(skillId, 'skill id');
+
+    const skill = await this.skillRepository.findOne({
+      where: { _id: skillId, userId: userObjectId },
+    });
     if (!skill) throw new NotFoundException('Skill not found or not yours');
-    return this.serializeSkill(skill);
+
+    Object.assign(skill, updateSkillDto);
+    return await this.skillRepository.save(skill);
   }
 
   async remove(skillId: string, userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const skill = await this.skillModel
-      .findOneAndDelete({ _id: skillId, userId: userObjectId })
-      .exec();
+    const userObjectId = validateUuid(userId, 'user id');
+    validateUuid(skillId, 'skill id');
+
+    const skill = await this.skillRepository.findOne({
+      where: { _id: skillId, userId: userObjectId },
+    });
     if (!skill) throw new NotFoundException('Skill not found or not yours');
-    return this.serializeSkill(skill);
+
+    await this.skillRepository.remove(skill);
+    return skill;
   }
 }

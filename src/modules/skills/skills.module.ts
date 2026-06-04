@@ -1,14 +1,13 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { SkillsService } from './skills.service';
 import { SkillsController } from './skills.controller';
-import { MongooseModule } from '@nestjs/mongoose';
-import { Skill, SkillSchema } from './entities/skill.entity';
+import { SkillEntity } from './pg-entities/skill.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([{ name: Skill.name, schema: SkillSchema }]),
-  ],
+  imports: [TypeOrmModule.forFeature([SkillEntity])],
   controllers: [SkillsController],
   providers: [SkillsService],
+  exports: [SkillsService],
 })
 export class SkillsModule {}

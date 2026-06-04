@@ -1,58 +1,44 @@
-import { Model } from 'mongoose';
 import { CreateExperienceDto } from './dto/create-experience.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
-import { Experience, ExperienceDocument } from './entities/experience.entity';
+import { ExperienceEntity } from './pg-entities/experience.entity';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { toObjectId } from '../../helpers/to-object-id';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { validateUuid } from '../../helpers/validate-uuid';
 
 @Injectable()
 export class ExperiencesService {
   constructor(
-    @InjectModel(Experience.name) private experienceModel: Model<Experience>,
+    @InjectRepository(ExperienceEntity)
+    private experienceRepository: Repository<ExperienceEntity>,
   ) {}
 
-  private serializeExperience(experience: ExperienceDocument) {
-    const serializedExperience = experience.toObject();
-
-    return {
-      ...serializedExperience,
-      _id: experience._id.toString(),
-      userId: experience.userId.toString(),
-    };
-  }
-
   async create(createExperienceDto: CreateExperienceDto, id: string) {
-    const userId = toObjectId(id, 'user id');
-    const exp = await this.experienceModel.create({
+    const userId = validateUuid(id, 'user id');
+    const exp = this.experienceRepository.create({
       ...createExperienceDto,
       userId,
     });
-    return this.serializeExperience(exp);
+    return await this.experienceRepository.save(exp);
   }
 
   async findAll(id: string) {
-    const userId = toObjectId(id, 'user id');
-    const experiences = await this.experienceModel.find({ userId }).exec();
-    return experiences.map((experience) =>
-      this.serializeExperience(experience),
-    );
+    const userId = validateUuid(id, 'user id');
+    return await this.experienceRepository.find({ where: { userId } });
   }
 
   async findOne(id: string) {
-    const exp = await this.experienceModel.findById(id).exec();
+    validateUuid(id, 'experience id');
+    const exp = await this.experienceRepository.findOne({ where: { _id: id } });
     if (!exp) throw new NotFoundException('Experience not found');
-    return this.serializeExperience(exp);
+    return exp;
   }
 
   async findOneByUserId(userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const experiences = await this.experienceModel
-      .find({ userId: userObjectId })
-      .exec();
-    return experiences.map((experience) =>
-      this.serializeExperience(experience),
-    );
+    const userObjectId = validateUuid(userId, 'user id');
+    return await this.experienceRepository.find({
+      where: { userId: userObjectId },
+    });
   }
 
   async update(
@@ -60,29 +46,27 @@ export class ExperiencesService {
     userId: string,
     updateExperienceDto: UpdateExperienceDto,
   ) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const exp = await this.experienceModel
-      .findOneAndUpdate(
-        { _id: expId, userId: userObjectId },
-        updateExperienceDto,
-        {
-          new: true,
-        },
-      )
-      .exec();
+    const userObjectId = validateUuid(userId, 'user id');
+    validateUuid(expId, 'experience id');
+    const exp = await this.experienceRepository.findOne({
+      where: { _id: expId, userId: userObjectId },
+    });
     if (!exp) throw new NotFoundException('Experience not found');
-    return this.serializeExperience(exp);
+    Object.assign(exp, updateExperienceDto);
+    return await this.experienceRepository.save(exp);
   }
 
   async remove(expId: string, userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const exp = await this.experienceModel
-      .findOneAndDelete({ _id: expId, userId: userObjectId })
-      .exec();
+    const userObjectId = validateUuid(userId, 'user id');
+    validateUuid(expId, 'experience id');
+    const exp = await this.experienceRepository.findOne({
+      where: { _id: expId, userId: userObjectId },
+    });
     if (!exp) throw new NotFoundException('Experience not found');
+    await this.experienceRepository.remove(exp);
     return {
       message: 'Experience deleted successfully',
-      experience: this.serializeExperience(exp),
+      experience: exp,
     };
   }
 }

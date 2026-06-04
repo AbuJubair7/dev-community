@@ -1,90 +1,75 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreatePostReactDto } from './dto/create-post-react.dto';
 import { UpdatePostReactDto } from './dto/update-post-react.dto.';
 import { CreateCommentReactDto } from './dto/create-comment-react.dto';
 import { UpdateCommentReactDto } from './dto/update-comment-react.dto';
-import { PostReact, PostReactDocument } from './entities/post-react.entity';
-import {
-  CommentReact,
-  CommentReactDocument,
-} from './entities/comment-react.entity';
-import { Post, PostDocument } from '../posts/entities/post.entity';
-import { User, UserDocument } from '../users/entities/user.entity';
-import { toObjectId } from '../../helpers/to-object-id';
+import { PostReactEntity } from './pg-entities/post-react.entity';
+import { CommentReactEntity } from './pg-entities/comment-react.entity';
+import { PostEntity } from '../posts/pg-entities/post.entity';
+import { UserEntity } from '../users/pg-entities/user.entity';
+import { validateUuid } from '../../helpers/validate-uuid';
 import { ReactState } from './enums/react-state.enum';
 import { sendMail } from '../../helpers/mailer';
 
 @Injectable()
 export class ReactsService {
   constructor(
-    @InjectModel(PostReact.name) private postReactModel: Model<PostReact>,
-    @InjectModel(CommentReact.name)
-    private commentReactModel: Model<CommentReact>,
-    @InjectModel(Post.name) private postModel: Model<Post>,
-    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectRepository(PostReactEntity)
+    private postReactRepository: Repository<PostReactEntity>,
+    @InjectRepository(CommentReactEntity)
+    private commentReactRepository: Repository<CommentReactEntity>,
+    @InjectRepository(PostEntity)
+    private postRepository: Repository<PostEntity>,
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
   ) {}
-
-  private serializePostReact(react: PostReactDocument) {
-    const obj = react.toObject();
-    return {
-      ...obj,
-      _id: react._id.toString(),
-      userId: obj.userId.toString(),
-      postId: obj.postId.toString(),
-    };
-  }
-
-  private serializeCommentReact(react: CommentReactDocument) {
-    const obj = react.toObject();
-    return {
-      ...obj,
-      _id: react._id.toString(),
-      userId: obj.userId.toString(),
-      commentId: obj.commentId.toString(),
-    };
-  }
 
   // ─── Post Reacts ────
 
   async createPostReact(createPostReactDto: CreatePostReactDto) {
-    const userId = toObjectId(createPostReactDto.userId, 'user id');
-    const postId = toObjectId(createPostReactDto.postId, 'post id');
+    const userId = validateUuid(createPostReactDto.userId, 'user id');
+    const postId = validateUuid(createPostReactDto.postId, 'post id');
+    const { state } = createPostReactDto;
 
-    const existingReact = await this.postReactModel
-      .findOne({ userId, postId })
-      .exec();
+    const existingReact = await this.postReactRepository.findOne({
+      where: { userId, postId },
+    });
 
-    let savedReact: PostReactDocument;
+    let savedReact: PostReactEntity;
 
     if (existingReact) {
-      if (existingReact.state !== createPostReactDto.state) {
-        existingReact.state = createPostReactDto.state;
-        await existingReact.save();
-        savedReact = existingReact;
+      if (existingReact.state !== state) {
+        existingReact.state = state;
+        savedReact = await this.postReactRepository.save(existingReact);
       } else {
-        return this.serializePostReact(existingReact);
+        return existingReact;
       }
     } else {
-      savedReact = await this.postReactModel.create({
+      const newReact = this.postReactRepository.create({
         ...createPostReactDto,
         userId,
         postId,
       });
+      savedReact = await this.postReactRepository.save(newReact);
     }
 
     // ── Dislike threshold check ──────────────────────────────────────────
     if (savedReact.state === ReactState.DISLIKE) {
-      const dislikeCount = await this.postReactModel
-        .countDocuments({ postId, state: ReactState.DISLIKE })
-        .exec();
+      const dislikeCount = await this.postReactRepository.count({
+        where: { postId, state: ReactState.DISLIKE },
+      });
 
       if (dislikeCount === 11) {
-        const post = await this.postModel.findById(postId).exec();
+        const post = await this.postRepository.findOne({
+          where: { _id: postId },
+        });
 
         if (post) {
-          const owner = await this.userModel.findById(post.userId).exec();
+          const owner = await this.userRepository.findOne({
+            where: { _id: post.userId },
+          });
 
           if (owner) {
             await sendMail({
@@ -99,25 +84,28 @@ export class ReactsService {
     }
     // ────────────────────────────────────────────────────────────────────
 
-    return this.serializePostReact(savedReact);
+    return savedReact;
   }
 
   // return count of reacts for each state
   async findAllPostReacts(postId: string) {
-    const postObjectId = toObjectId(postId, 'post id');
-    const likeCount = await this.postReactModel
-      .countDocuments({ postId: postObjectId, state: ReactState.LIKE })
-      .exec();
-    const dislikeCount = await this.postReactModel
-      .countDocuments({ postId: postObjectId, state: ReactState.DISLIKE })
-      .exec();
+    const postObjectId = validateUuid(postId, 'post id');
+    const likeCount = await this.postReactRepository.count({
+      where: { postId: postObjectId, state: ReactState.LIKE },
+    });
+    const dislikeCount = await this.postReactRepository.count({
+      where: { postId: postObjectId, state: ReactState.DISLIKE },
+    });
     return { likeCount, dislikeCount };
   }
 
   async findOnePostReact(id: string) {
-    const react = await this.postReactModel.findById(id).exec();
+    validateUuid(id, 'post react id');
+    const react = await this.postReactRepository.findOne({
+      where: { _id: id },
+    });
     if (!react) throw new NotFoundException('Post react not found');
-    return this.serializePostReact(react);
+    return react;
   }
 
   async updatePostReact(
@@ -125,76 +113,85 @@ export class ReactsService {
     userId: string,
     updatePostReactDto: UpdatePostReactDto,
   ) {
-    const postObjectId = toObjectId(postId, 'post id');
-    const userObjectId = toObjectId(userId, 'user id');
-    const react = await this.postReactModel
-      .findOneAndUpdate(
-        { postId: postObjectId, userId: userObjectId },
-        updatePostReactDto,
-        {
-          new: true,
-        },
-      )
-      .exec();
+    const postObjectId = validateUuid(postId, 'post id');
+    const userObjectId = validateUuid(userId, 'user id');
+
+    const react = await this.postReactRepository.findOne({
+      where: { postId: postObjectId, userId: userObjectId },
+    });
     if (!react)
       throw new NotFoundException('Post react not found or not yours');
-    return this.serializePostReact(react);
+
+    if (updatePostReactDto.state !== undefined) {
+      react.state = updatePostReactDto.state;
+    }
+    return await this.postReactRepository.save(react);
   }
 
   async removePostReact(id: string, userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const react = await this.postReactModel
-      .findOneAndDelete({ _id: id, userId: userObjectId })
-      .exec();
+    const userObjectId = validateUuid(userId, 'user id');
+    validateUuid(id, 'post react id');
+
+    const react = await this.postReactRepository.findOne({
+      where: { _id: id, userId: userObjectId },
+    });
     if (!react)
       throw new NotFoundException('Post react not found or not yours');
-    return this.serializePostReact(react);
+
+    await this.postReactRepository.remove(react);
+    return react;
   }
 
   // ─── Comment Reacts ────
 
   async createCommentReact(createCommentReactDto: CreateCommentReactDto) {
-    const userId = toObjectId(createCommentReactDto.userId, 'user id');
-    const commentId = toObjectId(createCommentReactDto.commentId, 'comment id');
+    const userId = validateUuid(createCommentReactDto.userId, 'user id');
+    const commentId = validateUuid(
+      createCommentReactDto.commentId,
+      'comment id',
+    );
+    const { state } = createCommentReactDto;
 
-    const existingReact = await this.commentReactModel
-      .findOne({ userId, commentId })
-      .exec();
+    const existingReact = await this.commentReactRepository.findOne({
+      where: { userId, commentId },
+    });
 
     if (existingReact) {
-      if (existingReact.state !== createCommentReactDto.state) {
-        existingReact.state = createCommentReactDto.state;
-        await existingReact.save();
-        return this.serializeCommentReact(existingReact);
+      if (existingReact.state !== state) {
+        existingReact.state = state;
+        return await this.commentReactRepository.save(existingReact);
       } else {
-        return this.serializeCommentReact(existingReact);
+        return existingReact;
       }
     }
 
-    const newReact = await this.commentReactModel.create({
+    const newReact = this.commentReactRepository.create({
       ...createCommentReactDto,
       userId,
       commentId,
     });
-    return this.serializeCommentReact(newReact);
+    return await this.commentReactRepository.save(newReact);
   }
 
   // return count of reacts for each state
   async findAllCommentReacts(commentId: string) {
-    const commentObjectId = toObjectId(commentId, 'comment id');
-    const likeCount = await this.commentReactModel
-      .countDocuments({ commentId: commentObjectId, state: ReactState.LIKE })
-      .exec();
-    const dislikeCount = await this.commentReactModel
-      .countDocuments({ commentId: commentObjectId, state: ReactState.DISLIKE })
-      .exec();
+    const commentObjectId = validateUuid(commentId, 'comment id');
+    const likeCount = await this.commentReactRepository.count({
+      where: { commentId: commentObjectId, state: ReactState.LIKE },
+    });
+    const dislikeCount = await this.commentReactRepository.count({
+      where: { commentId: commentObjectId, state: ReactState.DISLIKE },
+    });
     return { likeCount, dislikeCount };
   }
 
   async findOneCommentReact(id: string) {
-    const react = await this.commentReactModel.findById(id).exec();
+    validateUuid(id, 'comment react id');
+    const react = await this.commentReactRepository.findOne({
+      where: { _id: id },
+    });
     if (!react) throw new NotFoundException('Comment react not found');
-    return this.serializeCommentReact(react);
+    return react;
   }
 
   async updateCommentReact(
@@ -202,27 +199,32 @@ export class ReactsService {
     userId: string,
     updateCommentReactDto: UpdateCommentReactDto,
   ) {
-    const commentObjectId = toObjectId(commentId, 'comment id');
-    const userObjectId = toObjectId(userId, 'user id');
-    const react = await this.commentReactModel
-      .findOneAndUpdate(
-        { commentId: commentObjectId, userId: userObjectId },
-        updateCommentReactDto,
-        { new: true },
-      )
-      .exec();
+    const commentObjectId = validateUuid(commentId, 'comment id');
+    const userObjectId = validateUuid(userId, 'user id');
+
+    const react = await this.commentReactRepository.findOne({
+      where: { commentId: commentObjectId, userId: userObjectId },
+    });
     if (!react)
       throw new NotFoundException('Comment react not found or not yours');
-    return this.serializeCommentReact(react);
+
+    if (updateCommentReactDto.state !== undefined) {
+      react.state = updateCommentReactDto.state;
+    }
+    return await this.commentReactRepository.save(react);
   }
 
   async removeCommentReact(id: string, userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const react = await this.commentReactModel
-      .findOneAndDelete({ _id: id, userId: userObjectId })
-      .exec();
+    const userObjectId = validateUuid(userId, 'user id');
+    validateUuid(id, 'comment react id');
+
+    const react = await this.commentReactRepository.findOne({
+      where: { _id: id, userId: userObjectId },
+    });
     if (!react)
       throw new NotFoundException('Comment react not found or not yours');
-    return this.serializeCommentReact(react);
+
+    await this.commentReactRepository.remove(react);
+    return react;
   }
 }
