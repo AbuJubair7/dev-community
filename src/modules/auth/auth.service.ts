@@ -55,7 +55,7 @@ export class AuthService {
         };
 
         try {
-          user = await this.usersService.create(createUserDto);
+          user = await this.usersService.create(createUserDto, true);
         } catch {
           throw new InternalServerErrorException('User could not be created');
         }

@@ -6,12 +6,6 @@ const clientId = process.env.GOOGLE_CLIENT_ID;
 const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
-// console.log('Google OAuth Config:', {
-//   clientId: clientId,
-//   clientSecret: clientSecret,
-//   redirectUri: redirectUri,
-// });
-
 if (!clientId || !clientSecret || !redirectUri) {
   throw new Error('Missing Google OAuth environment variables.');
 }
@@ -35,7 +29,6 @@ export async function handleGoogleCallback(code: string): Promise<{
 }> {
   try {
     const { tokens } = await client.getToken(code);
-    console.log('Google OAuth Tokens:', tokens);
 
     if (!tokens.id_token) {
       throw new UnauthorizedException('Google did not return an ID token.');
