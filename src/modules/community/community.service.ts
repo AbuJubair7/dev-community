@@ -4,125 +4,111 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
 import { CreateCommunityDto } from './dto/create-community.dto';
 import { UpdateCommunityDto } from './dto/update-community.dto';
-import { InjectModel, InjectConnection } from '@nestjs/mongoose';
-import { Community, CommunityDocument } from './entities/community.entity';
-import {
-  CommunityMember,
-  CommunityMemberDocument,
-} from './entities/community-member.entity';
-import { CommunityInvite } from './entities/community-invite.entity';
-import { CommunityRequest } from './entities/community-request.entity';
-import { Model, Connection } from 'mongoose';
-import { toObjectId } from '../../helpers/to-object-id';
+import { CommunityEntity } from './pg-entities/community.entity';
+import { CommunityMemberEntity } from './pg-entities/community-member.entity';
+import { CommunityInviteEntity } from './pg-entities/community-invite.entity';
+import { CommunityRequestEntity } from './pg-entities/community-request.entity';
+import { UserEntity } from '../users/pg-entities/user.entity';
+import { validateUuid } from '../../helpers/validate-uuid';
 import { Role } from './enums/role.enum';
 import { InviteStatus } from './enums/invite-status.enum';
 
 @Injectable()
 export class CommunityService {
   constructor(
-    @InjectModel(Community.name) private communityModel: Model<Community>,
-    @InjectModel(CommunityMember.name)
-    private communityMemberModel: Model<CommunityMember>,
-    @InjectModel(CommunityInvite.name)
-    private communityInviteModel: Model<CommunityInvite>,
-    @InjectModel(CommunityRequest.name)
-    private communityRequestModel: Model<CommunityRequest>,
-    @InjectConnection() private connection: Connection,
+    @InjectRepository(CommunityEntity)
+    private communityRepository: Repository<CommunityEntity>,
+    @InjectRepository(CommunityMemberEntity)
+    private communityMemberRepository: Repository<CommunityMemberEntity>,
+    @InjectRepository(CommunityInviteEntity)
+    private communityInviteRepository: Repository<CommunityInviteEntity>,
+    @InjectRepository(CommunityRequestEntity)
+    private communityRequestRepository: Repository<CommunityRequestEntity>,
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
   ) {}
-
-  private serializeCommunity(community: CommunityDocument) {
-    const serializedCommunity = community.toObject();
-    return {
-      ...serializedCommunity,
-      _id: community._id.toString(),
-    };
-  }
-
-  private serializeCommunityMember(communityMember: CommunityMemberDocument) {
-    const serializedCommunityMember = communityMember.toObject();
-    return {
-      ...serializedCommunityMember,
-      _id: communityMember._id.toString(),
-    };
-  }
 
   async create(createCommunityDto: CreateCommunityDto, creatorId: string) {
     const createdCommunity =
-      await this.communityModel.create(createCommunityDto);
-    if (!createdCommunity) {
+      this.communityRepository.create(createCommunityDto);
+    const savedCommunity =
+      await this.communityRepository.save(createdCommunity);
+    if (!savedCommunity) {
       throw new BadRequestException('Failed to create community');
     }
 
     // Automatically set the creator as Admin
-    await this.communityMemberModel.create({
-      communityId: createdCommunity._id,
-      userId: toObjectId(creatorId, 'creator user id'),
+    const member = this.communityMemberRepository.create({
+      communityId: savedCommunity._id,
+      userId: validateUuid(creatorId, 'creator user id'),
       role: Role.ADMIN,
     });
+    await this.communityMemberRepository.save(member);
 
-    return this.serializeCommunity(createdCommunity);
+    return savedCommunity;
   }
 
   async findAll() {
-    const communities = await this.communityModel.find();
-    return communities.map((community) => this.serializeCommunity(community));
+    return await this.communityRepository.find();
   }
 
   async findOne(id: string) {
-    const communityObjectId = toObjectId(id, 'community id');
-    const community = await this.communityModel.findById(communityObjectId);
+    validateUuid(id, 'community id');
+    const community = await this.communityRepository.findOne({
+      where: { _id: id },
+    });
     if (!community) {
       throw new NotFoundException('Community not found');
     }
-    return this.serializeCommunity(community);
+    return community;
   }
 
   async update(id: string, updateCommunityDto: UpdateCommunityDto) {
-    const communityObjectId = toObjectId(id, 'community id');
-    const community = await this.communityModel.findByIdAndUpdate(
-      communityObjectId,
-      updateCommunityDto,
-      { new: true },
-    );
+    validateUuid(id, 'community id');
+    const community = await this.communityRepository.findOne({
+      where: { _id: id },
+    });
     if (!community) {
       throw new NotFoundException('Community not found');
     }
-    return this.serializeCommunity(community);
+    Object.assign(community, updateCommunityDto);
+    return await this.communityRepository.save(community);
   }
 
   async remove(id: string) {
-    const communityObjectId = toObjectId(id, 'community id');
-    const community =
-      await this.communityModel.findByIdAndDelete(communityObjectId);
+    validateUuid(id, 'community id');
+    const community = await this.communityRepository.findOne({
+      where: { _id: id },
+    });
     if (!community) {
       throw new NotFoundException('Community not found');
     }
 
-    // Cascade delete memberships, invites, and requests
-    // await this.communityMemberModel
-    //   .deleteMany({ communityId: communityObjectId })
-    //   .exec();
-    // await this.communityInviteModel.deleteMany({ communityId: id }).exec();
-    // await this.communityRequestModel
-    //   .deleteMany({ communityId: communityObjectId })
-    //   .exec();
+    await this.communityRepository.remove(community);
 
-    return this.serializeCommunity(community);
+    // Cascade delete memberships, invites, and requests
+    // await this.communityMemberRepository.delete({ communityId: id });
+    // await this.communityInviteRepository.delete({ communityId: id });
+    // await this.communityRequestRepository.delete({ communityId: id });
+
+    return community;
   }
 
   // ─── Invites & Requests ───
 
   async invite(communityId: string, inviterId: string, inviteeId: string) {
-    const communityObjectId = toObjectId(communityId, 'community id');
-    const inviteeObjectId = toObjectId(inviteeId, 'invitee user id');
-    const inviterObjectId = toObjectId(inviterId, 'inviter user id');
+    validateUuid(communityId, 'community id');
+    validateUuid(inviterId, 'inviter user id');
+    validateUuid(inviteeId, 'invitee user id');
 
     // Check if invitee is already a member
-    const existingMember = await this.communityMemberModel
-      .findOne({ communityId: communityObjectId, userId: inviteeObjectId })
-      .exec();
+    const existingMember = await this.communityMemberRepository.findOne({
+      where: { communityId, userId: inviteeId },
+    });
     if (existingMember) {
       throw new BadRequestException(
         'User is already a member of this community',
@@ -130,13 +116,13 @@ export class CommunityService {
     }
 
     // Check if a pending invite already exists
-    const existingInvite = await this.communityInviteModel
-      .findOne({
+    const existingInvite = await this.communityInviteRepository.findOne({
+      where: {
         communityId,
-        inviteeId: inviteeObjectId,
+        inviteeId,
         status: InviteStatus.PENDING,
-      })
-      .exec();
+      },
+    });
     if (existingInvite) {
       throw new BadRequestException(
         'An invitation is already pending for this user',
@@ -144,35 +130,36 @@ export class CommunityService {
     }
 
     // Check if a pending request already exists
-    const existingRequest = await this.communityRequestModel
-      .findOne({
-        communityId: communityObjectId,
-        userId: inviteeObjectId,
+    const existingRequest = await this.communityRequestRepository.findOne({
+      where: {
+        communityId,
+        userId: inviteeId,
         status: InviteStatus.PENDING,
-      })
-      .exec();
+      },
+    });
     if (existingRequest) {
       throw new BadRequestException(
         'This user has already requested to join this community. Please approve their request instead.',
       );
     }
 
-    return this.communityInviteModel.create({
-      communityId: communityObjectId,
-      inviterId: inviterObjectId,
-      inviteeId: inviteeObjectId,
+    const invite = this.communityInviteRepository.create({
+      communityId,
+      inviterId,
+      inviteeId,
       status: InviteStatus.PENDING,
     });
+    return await this.communityInviteRepository.save(invite);
   }
 
   async requestToJoin(communityId: string, userId: string) {
-    const communityObjectId = toObjectId(communityId, 'community id');
-    const userObjectId = toObjectId(userId, 'user id');
+    validateUuid(communityId, 'community id');
+    validateUuid(userId, 'user id');
 
     // Check if user is already a member
-    const existingMember = await this.communityMemberModel
-      .findOne({ communityId: communityObjectId, userId: userObjectId })
-      .exec();
+    const existingMember = await this.communityMemberRepository.findOne({
+      where: { communityId, userId },
+    });
     if (existingMember) {
       throw new BadRequestException(
         'You are already a member of this community',
@@ -180,13 +167,13 @@ export class CommunityService {
     }
 
     // Check if a pending request already exists
-    const existingRequest = await this.communityRequestModel
-      .findOne({
-        communityId: communityObjectId,
-        userId: userObjectId,
+    const existingRequest = await this.communityRequestRepository.findOne({
+      where: {
+        communityId,
+        userId,
         status: InviteStatus.PENDING,
-      })
-      .exec();
+      },
+    });
     if (existingRequest) {
       throw new BadRequestException(
         'A join request is already pending for this community',
@@ -194,38 +181,39 @@ export class CommunityService {
     }
 
     // Check if a pending invite already exists
-    const existingInvite = await this.communityInviteModel
-      .findOne({
-        communityId: communityId,
-        inviteeId: userObjectId,
+    const existingInvite = await this.communityInviteRepository.findOne({
+      where: {
+        communityId,
+        inviteeId: userId,
         status: InviteStatus.PENDING,
-      })
-      .exec();
+      },
+    });
     if (existingInvite) {
       throw new BadRequestException(
         'You have already been invited to join this community. Please accept the invitation instead.',
       );
     }
 
-    return this.communityRequestModel.create({
-      communityId: communityObjectId,
-      userId: userObjectId,
+    const request = this.communityRequestRepository.create({
+      communityId,
+      userId,
       status: InviteStatus.PENDING,
     });
+    return await this.communityRequestRepository.save(request);
   }
 
   async acceptInvite(inviteId: string, userId: string) {
-    const inviteObjectId = toObjectId(inviteId, 'invite id');
-    const userObjectId = toObjectId(userId, 'user id');
+    validateUuid(inviteId, 'invite id');
+    validateUuid(userId, 'user id');
 
-    const invite = await this.communityInviteModel
-      .findById(inviteObjectId)
-      .exec();
+    const invite = await this.communityInviteRepository.findOne({
+      where: { _id: inviteId },
+    });
     if (!invite) {
       throw new NotFoundException('Invitation not found');
     }
 
-    if (invite.inviteeId.toString() !== userId) {
+    if (invite.inviteeId !== userId) {
       throw new ForbiddenException('This invitation is not for you');
     }
 
@@ -234,39 +222,36 @@ export class CommunityService {
     }
 
     invite.status = InviteStatus.ACCEPTED;
-    await invite.save();
+    await this.communityInviteRepository.save(invite);
 
     // Create community member
-    const communityObjectId = toObjectId(
-      invite.communityId.toString(),
-      'community id',
-    );
-    const existingMember = await this.communityMemberModel
-      .findOne({ communityId: communityObjectId, userId: userObjectId })
-      .exec();
+    const existingMember = await this.communityMemberRepository.findOne({
+      where: { communityId: invite.communityId, userId },
+    });
 
     if (!existingMember) {
-      await this.communityMemberModel.create({
-        communityId: communityObjectId,
-        userId: userObjectId,
+      const member = this.communityMemberRepository.create({
+        communityId: invite.communityId,
+        userId,
         role: Role.MEMBER,
       });
+      await this.communityMemberRepository.save(member);
     }
 
     return invite;
   }
 
   async declineInvite(inviteId: string, userId: string) {
-    const inviteObjectId = toObjectId(inviteId, 'invite id');
+    validateUuid(inviteId, 'invite id');
 
-    const invite = await this.communityInviteModel
-      .findById(inviteObjectId)
-      .exec();
+    const invite = await this.communityInviteRepository.findOne({
+      where: { _id: inviteId },
+    });
     if (!invite) {
       throw new NotFoundException('Invitation not found');
     }
 
-    if (invite.inviteeId.toString() !== userId) {
+    if (invite.inviteeId !== userId) {
       throw new ForbiddenException('This invitation is not for you');
     }
 
@@ -275,17 +260,15 @@ export class CommunityService {
     }
 
     invite.status = InviteStatus.DECLINED;
-    await invite.save();
-
-    return invite;
+    return await this.communityInviteRepository.save(invite);
   }
 
   async acceptRequest(requestId: string) {
-    const requestObjectId = toObjectId(requestId, 'request id');
+    validateUuid(requestId, 'request id');
 
-    const joinRequest = await this.communityRequestModel
-      .findById(requestObjectId)
-      .exec();
+    const joinRequest = await this.communityRequestRepository.findOne({
+      where: { _id: requestId },
+    });
     if (!joinRequest) {
       throw new NotFoundException('Join request not found');
     }
@@ -295,33 +278,34 @@ export class CommunityService {
     }
 
     joinRequest.status = InviteStatus.ACCEPTED;
-    await joinRequest.save();
+    await this.communityRequestRepository.save(joinRequest);
 
     // Create community member
-    const existingMember = await this.communityMemberModel
-      .findOne({
+    const existingMember = await this.communityMemberRepository.findOne({
+      where: {
         communityId: joinRequest.communityId,
         userId: joinRequest.userId,
-      })
-      .exec();
+      },
+    });
 
     if (!existingMember) {
-      await this.communityMemberModel.create({
+      const member = this.communityMemberRepository.create({
         communityId: joinRequest.communityId,
         userId: joinRequest.userId,
         role: Role.MEMBER,
       });
+      await this.communityMemberRepository.save(member);
     }
 
     return joinRequest;
   }
 
   async declineRequest(requestId: string) {
-    const requestObjectId = toObjectId(requestId, 'request id');
+    validateUuid(requestId, 'request id');
 
-    const joinRequest = await this.communityRequestModel
-      .findById(requestObjectId)
-      .exec();
+    const joinRequest = await this.communityRequestRepository.findOne({
+      where: { _id: requestId },
+    });
     if (!joinRequest) {
       throw new NotFoundException('Join request not found');
     }
@@ -331,9 +315,7 @@ export class CommunityService {
     }
 
     joinRequest.status = InviteStatus.DECLINED;
-    await joinRequest.save();
-
-    return joinRequest;
+    return await this.communityRequestRepository.save(joinRequest);
   }
 
   // ─── Members ───
@@ -343,12 +325,12 @@ export class CommunityService {
     memberUserId: string,
     newRole: Role,
   ) {
-    const communityObjectId = toObjectId(communityId, 'community id');
-    const memberUserObjectId = toObjectId(memberUserId, 'member user id');
+    validateUuid(communityId, 'community id');
+    validateUuid(memberUserId, 'member user id');
 
-    const member = await this.communityMemberModel
-      .findOne({ communityId: communityObjectId, userId: memberUserObjectId })
-      .exec();
+    const member = await this.communityMemberRepository.findOne({
+      where: { communityId, userId: memberUserId },
+    });
 
     if (!member) {
       throw new NotFoundException('Member not found in this community');
@@ -361,9 +343,7 @@ export class CommunityService {
     }
 
     member.role = newRole;
-    await member.save();
-
-    return this.serializeCommunityMember(member);
+    return await this.communityMemberRepository.save(member);
   }
 
   async removeMember(
@@ -371,13 +351,13 @@ export class CommunityService {
     memberUserId: string,
     callerUserId: string,
   ) {
-    const communityObjectId = toObjectId(communityId, 'community id');
-    const memberUserObjectId = toObjectId(memberUserId, 'member user id');
-    const callerUserObjectId = toObjectId(callerUserId, 'caller user id');
+    validateUuid(communityId, 'community id');
+    validateUuid(memberUserId, 'member user id');
+    validateUuid(callerUserId, 'caller user id');
 
-    const memberToDelete = await this.communityMemberModel
-      .findOne({ communityId: communityObjectId, userId: memberUserObjectId })
-      .exec();
+    const memberToDelete = await this.communityMemberRepository.findOne({
+      where: { communityId, userId: memberUserId },
+    });
 
     if (!memberToDelete) {
       throw new NotFoundException('Member not found in this community');
@@ -390,9 +370,9 @@ export class CommunityService {
     }
 
     // A moderator cannot delete another moderator
-    const callerMember = await this.communityMemberModel
-      .findOne({ communityId: communityObjectId, userId: callerUserObjectId })
-      .exec();
+    const callerMember = await this.communityMemberRepository.findOne({
+      where: { communityId, userId: callerUserId },
+    });
 
     if (
       callerMember &&
@@ -402,9 +382,7 @@ export class CommunityService {
       throw new ForbiddenException('Moderators cannot delete other moderators');
     }
 
-    await this.communityMemberModel
-      .deleteOne({ _id: memberToDelete._id })
-      .exec();
+    await this.communityMemberRepository.remove(memberToDelete);
 
     return { message: 'Member removed successfully' };
   }
@@ -412,38 +390,38 @@ export class CommunityService {
   // ─── Query Helpers ───
 
   async getMembers(communityId: string) {
-    const communityObjectId = toObjectId(communityId, 'community id');
-    const members = await this.communityMemberModel
-      .find({ communityId: communityObjectId })
-      .exec();
-    return members.map((m) => this.serializeCommunityMember(m));
+    validateUuid(communityId, 'community id');
+    return await this.communityMemberRepository.find({
+      where: { communityId },
+    });
   }
 
   async getRequests(communityId: string) {
-    const communityObjectId = toObjectId(communityId, 'community id');
-    return this.communityRequestModel
-      .find({ communityId: communityObjectId, status: InviteStatus.PENDING })
-      .exec();
+    validateUuid(communityId, 'community id');
+    return await this.communityRequestRepository.find({
+      where: { communityId, status: InviteStatus.PENDING },
+    });
   }
 
   async getMyInvites(userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const invites = await this.communityInviteModel
-      .find({ inviteeId: userObjectId, status: InviteStatus.PENDING })
-      .exec();
+    validateUuid(userId, 'user id');
+    const invites = await this.communityInviteRepository.find({
+      where: { inviteeId: userId, status: InviteStatus.PENDING },
+    });
 
     const populatedInvites: any[] = [];
     for (const invite of invites) {
-      const c = await this.communityModel.findById(invite.communityId).exec();
-      const inviter = await this.connection
-        .model('User')
-        .findById(invite.inviterId)
-        .exec();
+      const c = await this.communityRepository.findOne({
+        where: { _id: invite.communityId },
+      });
+      const inviter = await this.userRepository.findOne({
+        where: { _id: invite.inviterId },
+      });
       populatedInvites.push({
-        _id: invite._id.toString(),
-        communityId: invite.communityId.toString(),
+        _id: invite._id,
+        communityId: invite.communityId,
         communityName: c ? c.name : 'Unknown Community',
-        inviterId: invite.inviterId.toString(),
+        inviterId: invite.inviterId,
         inviterName: inviter
           ? `${inviter.fname} ${inviter.lname}`.trim()
           : 'Unknown User',
@@ -454,31 +432,37 @@ export class CommunityService {
   }
 
   async getMyManagedRequests(userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const memberships = await this.communityMemberModel
-      .find({
-        userId: userObjectId,
-        role: { $in: [Role.ADMIN, Role.MODERATOR] },
-      })
-      .exec();
+    validateUuid(userId, 'user id');
+    const memberships = await this.communityMemberRepository.find({
+      where: {
+        userId,
+        role: In([Role.ADMIN, Role.MODERATOR]),
+      },
+    });
 
     const communityIds = memberships.map((m) => m.communityId);
-    const requests = await this.communityRequestModel
-      .find({
-        communityId: { $in: communityIds },
+    if (communityIds.length === 0) return [];
+
+    const requests = await this.communityRequestRepository.find({
+      where: {
+        communityId: In(communityIds),
         status: InviteStatus.PENDING,
-      })
-      .exec();
+      },
+    });
 
     const populatedRequests: any[] = [];
     for (const req of requests) {
-      const u = await this.connection.model('User').findById(req.userId).exec();
-      const c = await this.communityModel.findById(req.communityId).exec();
+      const u = await this.userRepository.findOne({
+        where: { _id: req.userId },
+      });
+      const c = await this.communityRepository.findOne({
+        where: { _id: req.communityId },
+      });
       populatedRequests.push({
-        _id: req._id.toString(),
-        communityId: req.communityId.toString(),
+        _id: req._id,
+        communityId: req.communityId,
         communityName: c ? c.name : 'Unknown Community',
-        userId: req.userId.toString(),
+        userId: req.userId,
         userName: u ? `${u.fname} ${u.lname}`.trim() : 'Unknown User',
         userEmail: u ? u.email : '',
         status: req.status,
@@ -488,42 +472,42 @@ export class CommunityService {
   }
 
   async getMyRole(communityId: string, userId: string) {
-    const communityObjectId = toObjectId(communityId, 'community id');
-    const userObjectId = toObjectId(userId, 'user id');
+    validateUuid(communityId, 'community id');
+    validateUuid(userId, 'user id');
 
     // 1. Check membership
-    const member = await this.communityMemberModel
-      .findOne({ communityId: communityObjectId, userId: userObjectId })
-      .exec();
+    const member = await this.communityMemberRepository.findOne({
+      where: { communityId, userId },
+    });
     if (member) {
       return { role: member.role, status: 'member' };
     }
 
     // 2. Check pending request
-    const pendingRequest = await this.communityRequestModel
-      .findOne({
-        communityId: communityObjectId,
-        userId: userObjectId,
+    const pendingRequest = await this.communityRequestRepository.findOne({
+      where: {
+        communityId,
+        userId,
         status: InviteStatus.PENDING,
-      })
-      .exec();
+      },
+    });
     if (pendingRequest) {
       return { role: null, status: 'requested' };
     }
 
     // 3. Check pending invite
-    const pendingInvite = await this.communityInviteModel
-      .findOne({
+    const pendingInvite = await this.communityInviteRepository.findOne({
+      where: {
         communityId,
-        inviteeId: userObjectId,
+        inviteeId: userId,
         status: InviteStatus.PENDING,
-      })
-      .exec();
+      },
+    });
     if (pendingInvite) {
       return {
         role: null,
         status: 'invited',
-        inviteId: pendingInvite._id.toString(),
+        inviteId: pendingInvite._id,
       };
     }
 
@@ -531,14 +515,15 @@ export class CommunityService {
   }
 
   async getMyCommunities(userId: string) {
-    const userObjectId = toObjectId(userId, 'user id');
-    const memberships = await this.communityMemberModel
-      .find({ userId: userObjectId })
-      .exec();
+    validateUuid(userId, 'user id');
+    const memberships = await this.communityMemberRepository.find({
+      where: { userId },
+    });
     const communityIds = memberships.map((m) => m.communityId);
-    const communities = await this.communityModel
-      .find({ _id: { $in: communityIds } })
-      .exec();
-    return communities.map((c) => this.serializeCommunity(c));
+    if (communityIds.length === 0) return [];
+
+    return await this.communityRepository.find({
+      where: { _id: In(communityIds) },
+    });
   }
 }

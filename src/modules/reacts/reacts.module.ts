@@ -1,25 +1,23 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ReactsService } from './reacts.service';
 import { ReactsController } from './reacts.controller';
-import { PostReact, PostReactSchema } from './entities/post-react.entity';
-import {
-  CommentReact,
-  CommentReactSchema,
-} from './entities/comment-react.entity';
-import { Post, PostSchema } from '../posts/entities/post.entity';
-import { User, UserSchema } from '../users/entities/user.entity';
+import { PostReactEntity } from './pg-entities/post-react.entity';
+import { CommentReactEntity } from './pg-entities/comment-react.entity';
+import { PostEntity } from '../posts/pg-entities/post.entity';
+import { UserEntity } from '../users/pg-entities/user.entity';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: PostReact.name, schema: PostReactSchema },
-      { name: CommentReact.name, schema: CommentReactSchema },
-      { name: Post.name, schema: PostSchema },
-      { name: User.name, schema: UserSchema },
+    TypeOrmModule.forFeature([
+      PostReactEntity,
+      CommentReactEntity,
+      PostEntity,
+      UserEntity,
     ]),
   ],
   controllers: [ReactsController],
   providers: [ReactsService],
+  exports: [ReactsService],
 })
 export class ReactsModule {}

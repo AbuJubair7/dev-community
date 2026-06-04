@@ -1,16 +1,13 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ExperiencesService } from './experiences.service';
 import { ExperiencesController } from './experiences.controller';
-import { Experience, ExperienceSchema } from './entities/experience.entity';
-import { MongooseModule } from '@nestjs/mongoose';
+import { ExperienceEntity } from './pg-entities/experience.entity';
 
 @Module({
-  imports: [
-    MongooseModule.forFeature([
-      { name: Experience.name, schema: ExperienceSchema },
-    ]),
-  ],
+  imports: [TypeOrmModule.forFeature([ExperienceEntity])],
   controllers: [ExperiencesController],
   providers: [ExperiencesService],
+  exports: [ExperiencesService],
 })
 export class ExperiencesModule {}

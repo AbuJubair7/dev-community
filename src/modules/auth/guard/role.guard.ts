@@ -6,17 +6,19 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { InjectConnection } from '@nestjs/mongoose';
-import { Connection } from 'mongoose';
-import { Role } from 'src/modules/community/enums/role.enum';
-import { toObjectId } from 'src/helpers/to-object-id';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { CommunityMemberEntity } from 'src/modules/community/pg-entities/community-member.entity';
+import { validateUuid } from 'src/helpers/validate-uuid';
 import { Request } from 'express';
+import { Role } from 'src/modules/community/enums/role.enum';
 
 @Injectable()
 export class RoleGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
-    @InjectConnection() private connection: Connection,
+    @InjectRepository(CommunityMemberEntity)
+    private communityMemberRepository: Repository<CommunityMemberEntity>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -49,13 +51,12 @@ export class RoleGuard implements CanActivate {
     }
 
     try {
-      const communityMemberModel = this.connection.model('CommunityMember');
-      const member = await communityMemberModel
-        .findOne({
-          communityId: toObjectId(communityId, 'community id'),
-          userId: toObjectId(userId, 'user id'),
-        })
-        .exec();
+      const member = await this.communityMemberRepository.findOne({
+        where: {
+          communityId: validateUuid(communityId, 'community id'),
+          userId: validateUuid(userId, 'user id'),
+        },
+      });
 
       if (!member) {
         throw new ForbiddenException('You are not a member of this community');
