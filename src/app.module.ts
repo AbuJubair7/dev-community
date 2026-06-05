@@ -13,6 +13,7 @@ import { ReactsModule } from './modules/reacts/reacts.module';
 import { CommunityModule } from './modules/community/community.module';
 import { dbConfig } from './config/db';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from './modules/redis/redis.module';
 import 'dotenv/config';
 
 @Module({
@@ -42,6 +43,7 @@ import 'dotenv/config';
     CommentsModule,
     ReactsModule,
     CommunityModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],
