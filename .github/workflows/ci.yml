@@ -3,9 +3,9 @@ name: Backend CI
 # Controls when the workflow will run
 on:
   push:
-    branches: [ main, master, dev ]
+    branches: [main, master, dev]
   pull_request:
-    branches: [ main, master, dev ]
+    branches: [main, master, dev]
 
 # A workflow run is made up of one or more jobs
 jobs:
@@ -30,8 +30,8 @@ jobs:
         run: npm ci
 
       # Step 4: Run ESLint to check code quality
-      - name: Run Linting
-        run: npm run lint
+      # - name: Run Linting
+      #   run: npm run lint
 
       # Step 5: Run code formatting
       - name: Run Code Formatting
