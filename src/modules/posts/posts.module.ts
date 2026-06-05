@@ -6,9 +6,11 @@ import { PostEntity } from './pg-entities/post.entity';
 import { CommunityMemberEntity } from '../community/pg-entities/community-member.entity';
 import { BullModule } from '@nestjs/bullmq';
 import { PostSchedulerProcessor } from './post-scheduler.processor';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
+    RedisModule,
     TypeOrmModule.forFeature([PostEntity, CommunityMemberEntity]),
 
     // Register the 'post-scheduler' queue — BullMQ will store jobs in Redis

@@ -14,6 +14,7 @@ import { PostStatus } from './enums/post-status.enum';
 import { In, IsNull, Repository } from 'typeorm';
 import { validateUuid } from '../../helpers/validate-uuid';
 import { Role } from '../community/enums/role.enum';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class PostsService {
@@ -24,7 +25,20 @@ export class PostsService {
     private communityMemberRepository: Repository<CommunityMemberEntity>,
     // Inject the BullMQ queue — 'post-scheduler' matches the name in posts.module.ts
     @InjectQueue('post-scheduler') private postSchedulerQueue: Queue,
+    private readonly redisService: RedisService,
   ) {}
+
+  async addViewer(postId: string, userId: string) {
+    return await this.redisService.addViewer(postId, userId);
+  }
+
+  async getViewCount(postId: string) {
+    return await this.redisService.getViewCount(postId);
+  }
+
+  async getViewers(postId: string) {
+    return await this.redisService.getViewers(postId);
+  }
 
   async create(createPostDto: CreatePostDto, userId: string) {
     const userObjectId = validateUuid(userId, 'user id');
@@ -122,8 +136,10 @@ export class PostsService {
         );
       }
     }
-
-    return post;
+    await this.addViewer(id, userId);
+    const viewCnt = await this.getViewCount(id);
+    const viewers = await this.getViewers(id);
+    return { post, viewCnt, viewers };
   }
 
   async findOneByUserId(userId: string) {
